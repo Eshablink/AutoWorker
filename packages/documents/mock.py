@@ -1,6 +1,6 @@
 """Deterministic document extractor for tests and local development."""
 
-from packages.documents.contracts import DocumentArtifact, DocumentExtraction, DocumentExtractor, ExtractedField
+from packages.documents.contracts import DocumentArtifact, DocumentExtraction, ExtractedField
 
 
 class MockDocumentExtractor:
