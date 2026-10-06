@@ -1,6 +1,6 @@
 """Task execution orchestration across policy, worker, and domain state."""
 
-from packages.domain.models import ActionStatus, PolicyOutcome, Task, TaskStatus
+from packages.domain.models import ActionStatus, ApprovalRequest, PolicyOutcome, Task, TaskStatus
 from packages.domain.state import TaskStateMachine
 from packages.policy.engine import PolicyEngine
 from packages.tools.registry import ToolRegistry
@@ -55,6 +55,16 @@ class TaskOrchestrator:
                 TaskStatus.WAITING_APPROVAL,
                 actor="POLICY_ENGINE",
                 reason=decision.reason,
+            )
+            action.approval_request = ApprovalRequest(
+                task_id=task.task_id,
+                action_id=action.action_id,
+                policy_decision_id=decision.decision_id,
+                requested_action_name=action.decision_summary,
+                tool_id=action.tool_id,
+                payload_summary=action.tool_input,
+                risk_level=decision.risk_level,
+                reason_required=decision.reason,
             )
             action.status = ActionStatus.WAITING_APPROVAL
             self.event_bus.publish(
