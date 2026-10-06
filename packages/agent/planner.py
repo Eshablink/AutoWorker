@@ -1,6 +1,6 @@
 """Structured agent-to-execution planning adapter."""
 
-from packages.agent.contracts import AgentProvider
+from packages.agent.contracts import AgentProvider, AgentRequest
 from packages.domain.models import Task, TaskAction
 
 
@@ -12,7 +12,7 @@ class AgentPlanner:
 
     def build_actions(self, task: Task) -> list[TaskAction]:
         response = self.provider.complete(
-            __import__("packages.agent.contracts", fromlist=["AgentRequest"]).AgentRequest(
+            AgentRequest(
                 task_id=task.task_id,
                 goal=task.goal,
                 context=task.context_memory,
