@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from uuid import uuid4
+
+from fastapi import FastAPI, Request
 from sqlalchemy import text
 
 from apps.api.database import get_session_factory
