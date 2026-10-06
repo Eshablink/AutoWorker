@@ -116,7 +116,9 @@ class TaskStateMachine:
         if task.actions and not 0 <= task.current_step_index < len(task.actions):
             raise InvariantViolationError("Task current_step_index is out of bounds.")
         if not task.actions and task.current_step_index != 0:
-            raise InvariantViolationError("Empty task cannot run with a non-zero current_step_index.")
+            raise InvariantViolationError(
+                f"Task {task.task_id} current_step_index ({task.current_step_index}) is out of bounds."
+            )
         if not task.actions:
             return
 
@@ -131,8 +133,18 @@ class TaskStateMachine:
             )
         if policy is None:
             return
-        if policy.task_id != task.task_id or policy.action_id != action.action_id or policy.tool_id != action.tool_id:
-            raise InvariantViolationError("PolicyDecision does not match the task's current action.")
+        if policy.task_id != task.task_id:
+            raise InvariantViolationError(
+                f"PolicyDecision task_id '{policy.task_id}' does not match Task ID '{task.task_id}'."
+            )
+        if policy.action_id != action.action_id:
+            raise InvariantViolationError(
+                f"PolicyDecision action_id '{policy.action_id}' does not match TaskAction ID '{action.action_id}'."
+            )
+        if policy.tool_id != action.tool_id:
+            raise InvariantViolationError(
+                f"PolicyDecision tool_id '{policy.tool_id}' does not match TaskAction tool_id '{action.tool_id}'."
+            )
         requires_approval = policy.outcome == PolicyOutcome.REQUIRE_APPROVAL or policy.risk_level in {
             ToolRisk.HIGH,
             ToolRisk.CRITICAL,
@@ -140,10 +152,26 @@ class TaskStateMachine:
         if not requires_approval:
             return
         approval = action.approval_request
-        if approval is None or approval.task_id != task.task_id or approval.action_id != action.action_id:
-            raise InvariantViolationError("A matching approval request is required before execution.")
-        if approval.policy_decision_id != policy.decision_id or approval.status != ApprovalStatus.APPROVED:
-            raise InvariantViolationError("Approval must match the policy decision and be APPROVED.")
+        if approval is None:
+            raise InvariantViolationError(
+                f"Action {action.action_id} requires explicit human approval before execution."
+            )
+        if approval.task_id != task.task_id:
+            raise InvariantViolationError(
+                f"ApprovalRequest task_id '{approval.task_id}' does not match Task ID '{task.task_id}'."
+            )
+        if approval.action_id != action.action_id:
+            raise InvariantViolationError(
+                f"ApprovalRequest action_id '{approval.action_id}' does not match TaskAction ID '{action.action_id}'."
+            )
+        if approval.policy_decision_id != policy.decision_id:
+            raise InvariantViolationError(
+                f"ApprovalRequest policy_decision_id '{approval.policy_decision_id}' does not match PolicyDecision ID '{policy.decision_id}'."
+            )
+        if approval.status != ApprovalStatus.APPROVED:
+            raise InvariantViolationError(
+                f"Action {action.action_id} approval request status is '{approval.status.value}', expected 'APPROVED'."
+            )
 
     @staticmethod
     def record_verification(
@@ -152,7 +180,9 @@ class TaskStateMachine:
         actor: str = "VERIFICATION_ENGINE",
     ) -> Tuple[Task, AuditEvent]:
         if verification_result.task_id != task.task_id:
-            raise InvariantViolationError("Cannot attach a VerificationResult for another task.")
+            raise InvariantViolationError(
+                    f"VerificationResult task_id '{verification.task_id}' does not match Task task_id '{task.task_id}'."
+                )
         task.verification_result = verification_result
         task.version += 1
         task.updated_at = datetime.now(timezone.utc)
