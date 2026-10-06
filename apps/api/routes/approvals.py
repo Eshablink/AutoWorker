@@ -79,21 +79,28 @@ def decide_approval(
     repository.save(
         task,
         audit_event=AuditEvent(
-        task_id=task.task_id,
-        action_id=action.action_id,
-        event_type="APPROVAL_DECIDED",
-        actor="HUMAN_APPROVER",
-        details={"approval_id": str(approval_id), "status": decision.status.value, "approver_id": decision.approver_id},
+            task_id=task.task_id,
+            action_id=action.action_id,
+            event_type="APPROVAL_DECIDED",
+            actor="HUMAN_APPROVER",
+            details={
+                "approval_id": str(approval_id),
+                "status": decision.status.value,
+                "approver_id": decision.approver_id,
+            },
         ),
         expected_version=previous_version,
     )
 
     event_bus.publish(
         TaskEvent(
-        task_id=task.task_id,
-        action_id=action.action_id,
-        event_type=EventType.APPROVAL_DECIDED,
-        payload={"approval_id": str(approval_id), "status": decision.status.value},
+            task_id=task.task_id,
+            action_id=action.action_id,
+            event_type=EventType.APPROVAL_DECIDED,
+            payload={
+                "approval_id": str(approval_id),
+                "status": decision.status.value,
+            },
         )
     )
     return {
