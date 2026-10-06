@@ -1,35 +1,21 @@
 # AutoWorker Execution Architecture
 
-## Flow
+## Runtime flow
 
-`Task -> Action -> Policy -> Worker -> Tool Adapter -> Observation -> Verification`
+`Task -> Policy -> State Machine -> Worker -> Tool Adapter -> Observation -> Verification -> Audit/Event Stream`
 
-The worker is intentionally separate from tool implementations.
+The execution worker is isolated from tool implementations and authorization decisions.
 
-### Worker responsibilities
+## Event model
 
-- accept an already-planned action
-- execute only through an injected `ToolExecutor`
-- capture tool output and an operational observation
-- move the action to `COMPLETED` only after the executor returns successfully
+Operational events are emitted for task state changes, action execution, approvals, recovery, and verification. Events contain operational metadata only; private chain-of-thought is never persisted or streamed.
 
-### Worker non-responsibilities
+The initial event bus is in-process. Production deployment can replace it with Redis Streams, PostgreSQL-backed outbox delivery, or another durable event transport without changing domain contracts.
 
-- deciding whether a tool is authorized
-- generating private model reasoning
-- owning persistence transactions
-- implementing browser, API, OCR, or computer-use mechanics
+## Verification
+
+Every successful task must carry a matching successful `VerificationResult`. Verification checks can combine multiple deterministic checks and report a bounded confidence score.
 
 ## Persistence boundary
 
-The domain exposes a repository protocol with optimistic-concurrency semantics. A future PostgreSQL adapter will implement it and atomically persist task state plus audit events.
-
-## Future production extensions
-
-- action execution timeout and cancellation
-- retry/recovery policy
-- durable worker queue
-- heartbeat/lease ownership
-- idempotency-key enforcement at the execution adapter
-- evidence capture
-- structured execution telemetry
+Task state and audit records are persisted through a repository boundary with optimistic concurrency. PostgreSQL/SQLAlchemy is the initial durable adapter.
