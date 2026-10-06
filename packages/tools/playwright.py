@@ -16,7 +16,7 @@ from packages.tools.browser import (
 )
 
 
-class PlaywrightBrowserSession(BrowserSession):
+class PlaywrightBrowserSession:
     def __init__(self, page: Any, *, allowed_origins: frozenset[str] = frozenset()) -> None:
         self.page = page
         self.allowed_origins = allowed_origins
