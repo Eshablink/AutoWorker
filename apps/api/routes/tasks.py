@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from packages.domain.models import Task, TaskStatus
+from packages.persistence.memory import InMemoryTaskRepository
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -19,13 +20,13 @@ class TaskResponse(BaseModel):
     version: int
 
 
-_tasks: dict[UUID, Task] = {}
+_repository = InMemoryTaskRepository()
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(request: CreateTaskRequest) -> TaskResponse:
     task = Task(task_id=uuid4(), goal=request.goal)
-    _tasks[task.task_id] = task
+    _repository.create(task)
     return TaskResponse(
         task_id=task.task_id,
         goal=task.goal,
@@ -36,9 +37,10 @@ def create_task(request: CreateTaskRequest) -> TaskResponse:
 
 @router.get("/{task_id}", response_model=TaskResponse)
 def get_task(task_id: UUID) -> TaskResponse:
-    task = _tasks.get(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found.")
+    try:
+        task = _repository.get(task_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Task not found.") from exc
     return TaskResponse(
         task_id=task.task_id,
         goal=task.goal,
