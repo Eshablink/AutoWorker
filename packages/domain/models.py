@@ -111,6 +111,7 @@ class PolicyDecision(BaseModel):
     outcome: PolicyOutcome
     risk_level: ToolRisk
     reason: str
+    policy_version: str = "v1"
     evaluated_rules: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=default_utc_now)
 
