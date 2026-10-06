@@ -27,6 +27,8 @@ class VerificationEngine:
         all_success = True
         for item in checks:
             success, actual = item.check(action)
+            if not isinstance(success, bool):
+                raise TypeError(f"Verification check {item.name!r} must return a boolean success flag.")
             results.append({"check": item.name, "success": success, "actual": actual})
             all_success = all_success and success
 
