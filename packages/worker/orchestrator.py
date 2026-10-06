@@ -36,9 +36,8 @@ class TaskOrchestrator:
             return task
 
         if decision.outcome == PolicyOutcome.REQUIRE_APPROVAL:
-            task.status = TaskStatus.WAITING_APPROVAL
+            TaskStateMachine.transition(task, TaskStatus.WAITING_APPROVAL, actor="POLICY_ENGINE", reason=decision.reason)
             action.status = ActionStatus.WAITING_APPROVAL
-            task.version += 1
             return task
 
         TaskStateMachine.transition(task, TaskStatus.RUNNING, actor="ORCHESTRATOR")
