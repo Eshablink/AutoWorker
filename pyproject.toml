@@ -11,11 +11,14 @@ dependencies = [
     "pydantic>=2.13,<3",
     "sqlalchemy>=2.0,<3",
     "alembic>=1.17,<2",
+    "fastapi>=0.120,<1",
+    "uvicorn[standard]>=0.38,<1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8,<10",
+    "httpx>=0.28,<1",
     "ruff>=0.14,<1",
 ]
 
