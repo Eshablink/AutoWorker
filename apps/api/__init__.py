@@ -1,0 +1,1 @@
+"""AutoWorker API application."""
