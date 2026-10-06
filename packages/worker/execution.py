@@ -25,9 +25,33 @@ class ToolExecutor(Protocol):
         ...
 
 
+class IdempotencyStore(Protocol):
+    def get(self, key: str) -> ToolExecutionResult | None:
+        ...
+
+    def put(self, key: str, result: ToolExecutionResult) -> None:
+        ...
+
+
+class InMemoryIdempotencyStore:
+    def __init__(self) -> None:
+        self._results: dict[str, ToolExecutionResult] = {}
+
+    def get(self, key: str) -> ToolExecutionResult | None:
+        return self._results.get(key)
+
+    def put(self, key: str, result: ToolExecutionResult) -> None:
+        self._results[key] = result
+
+
 class ExecutionWorker:
-    def __init__(self, executor: ToolExecutor) -> None:
+    def __init__(
+        self,
+        executor: ToolExecutor,
+        idempotency_store: IdempotencyStore | None = None,
+    ) -> None:
         self.executor = executor
+        self.idempotency_store = idempotency_store or InMemoryIdempotencyStore()
 
     def execute_action(self, action: TaskAction) -> ToolExecutionResult:
         if action.status not in {ActionStatus.PENDING, ActionStatus.APPROVED}:
@@ -51,7 +75,17 @@ class ExecutionWorker:
                 f"Action {action.action_id} cannot execute without an idempotency key."
             )
 
+        if action.is_side_effecting and action.idempotency_key:
+            existing = self.idempotency_store.get(action.idempotency_key)
+            if existing is not None:
+                action.tool_output = dict(existing.output)
+                action.observation = existing.observation
+                action.status = ActionStatus.COMPLETED
+                return existing
+
         result = self.executor.execute(action)
+        if action.is_side_effecting and action.idempotency_key:
+            self.idempotency_store.put(action.idempotency_key, result)
         action.tool_output = dict(result.output)
         action.observation = result.observation
         action.status = ActionStatus.COMPLETED
