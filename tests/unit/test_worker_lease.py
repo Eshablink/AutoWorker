@@ -1,4 +1,3 @@
-import time
 from uuid import uuid4
 
 import pytest
@@ -6,7 +5,6 @@ import pytest
 from packages.worker.lease import (
     InMemoryLeaseManager,
     LeaseError,
-    LeaseExpiredError,
     LeaseNotOwnedError,
 )
 
