@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 
 from packages.domain.models import ActionStatus, TaskAction
@@ -71,6 +73,7 @@ def test_side_effecting_action_reuses_idempotent_result_without_reexecuting():
     store = InMemoryIdempotencyStore()
     worker = ExecutionWorker(CountingExecutor(), store)
     action = TaskAction(
+        task_id=uuid4(),
         step_number=1,
         tool_id="erp_submit",
         is_side_effecting=True,
