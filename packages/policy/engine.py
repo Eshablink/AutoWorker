@@ -1,9 +1,9 @@
 """Deterministic policy engine for AutoWorker tool proposals."""
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Callable, Iterable
 
-from packages.domain.models import PolicyDecision, PolicyOutcome, Task, TaskAction, ToolRisk
+from packages.domain.models import PolicyDecision, PolicyOutcome, Task, TaskAction, ToolDefinition, ToolRisk
 from packages.tools.registry import ToolRegistry
 
 
@@ -11,6 +11,8 @@ from packages.tools.registry import ToolRegistry
 class PolicyRule:
     rule_id: str
     reason: str
+    outcome: PolicyOutcome = PolicyOutcome.DENY
+    matches: Callable[[Task, TaskAction, ToolDefinition], bool] | None = None
 
 
 class PolicyEngine:
@@ -19,9 +21,16 @@ class PolicyEngine:
     The engine does not execute tools or ask an LLM to make authorization decisions.
     """
 
-    def __init__(self, registry: ToolRegistry, rules: Iterable[PolicyRule] = ()) -> None:
+    def __init__(
+        self,
+        registry: ToolRegistry,
+        rules: Iterable[PolicyRule] = (),
+        *,
+        policy_version: str = "v1",
+    ) -> None:
         self.registry = registry
         self.rules = tuple(rules)
+        self.policy_version = policy_version
 
     def evaluate(self, task: Task, action: TaskAction) -> PolicyDecision:
         tool = self.registry.get(action.tool_id)
@@ -43,6 +52,13 @@ class PolicyEngine:
                 outcome = PolicyOutcome.DENY
                 reason = "Side-effecting tool requires a non-empty idempotency key."
 
+        for rule in self.rules:
+            if rule.matches is not None and rule.matches(task, action, tool):
+                outcome = rule.outcome
+                reason = rule.reason
+                if outcome == PolicyOutcome.DENY:
+                    break
+
         return PolicyDecision(
             task_id=task.task_id,
             action_id=action.action_id,
@@ -50,5 +66,6 @@ class PolicyEngine:
             outcome=outcome,
             risk_level=risk,
             reason=reason,
+            policy_version=self.policy_version,
             evaluated_rules=evaluated_rules,
         )
