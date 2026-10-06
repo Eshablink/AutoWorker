@@ -181,8 +181,9 @@ class TaskStateMachine:
     ) -> Tuple[Task, AuditEvent]:
         if verification_result.task_id != task.task_id:
             raise InvariantViolationError(
-                    f"VerificationResult task_id '{verification_result.task_id}' does not match Task task_id '{task.task_id}.'"
-                )
+                f"VerificationResult task_id '{verification_result.task_id}' does not match "
+                f"Task task_id '{task.task_id}'."
+            )
         task.verification_result = verification_result
         task.version += 1
         task.updated_at = datetime.now(timezone.utc)
