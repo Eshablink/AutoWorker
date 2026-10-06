@@ -17,6 +17,12 @@ class DocumentArtifact:
     sha256: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if not self.media_type.strip():
+            raise ValueError("Document media_type cannot be empty.")
+        if not self.uri.strip():
+            raise ValueError("Document URI cannot be empty.")
+
 
 @dataclass(frozen=True)
 class OCRResult:
