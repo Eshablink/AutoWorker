@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 3 — Full-stack execution platform
+Phase 4 — Autonomous capability layer
 
 ## Completed
 - New GitHub repository and feature-branch workflow established.
@@ -36,3 +36,17 @@ Update this file after each meaningful milestone. Do not mark work complete unti
 - Operational event bus with no private chain-of-thought.
 - React/Vite premium operations dashboard foundation.
 - Docker Compose stack for PostgreSQL, API, and web dashboard.
+
+
+## Capability layer progress
+- Typed browser/computer-use session, observation, element-targeting, and action contracts.
+- Typed document/OCR/invoice extraction contracts with provenance.
+- Task-scoped memory contract and reference in-memory store.
+- Structured agent-provider boundary and plan validation contracts.
+- Content-addressed evidence store with checksum verification.
+- Controlled ERP adapter contract and deterministic simulated ERP.
+- Invoice workflow composition with validation, idempotency reuse, and pre-write rejection.
+- Live dashboard task API client, polling, task creation control, and production nginx API proxy.
+- Durable task listing and audit-history API foundations.
+- Database-backed readiness probe and migration-first container startup.
+- CI upgraded to current Node 24-compatible GitHub Actions releases.
