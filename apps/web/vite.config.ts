@@ -5,8 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      "/tasks": "http://localhost:8000",
-      "/approvals": "http://localhost:8000",
+      "/api": {
+        target: "http://localhost:8000",
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
     },
   },
 });
