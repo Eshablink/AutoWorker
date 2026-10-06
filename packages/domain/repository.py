@@ -21,6 +21,9 @@ class TaskRepository(Protocol):
     def get(self, task_id: UUID) -> Task:
         ...
 
+    def list_tasks(self, *, limit: int = 50) -> list[Task]:
+        ...
+
     def create(self, task: Task) -> Task:
         ...
 
