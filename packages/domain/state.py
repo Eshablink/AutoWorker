@@ -26,7 +26,7 @@ class InvariantViolationError(Exception):
 VALID_TASK_TRANSITIONS: Dict[TaskStatus, Set[TaskStatus]] = {
     TaskStatus.CREATED: {TaskStatus.PLANNING, TaskStatus.CANCELLED},
     TaskStatus.PLANNING: {TaskStatus.READY, TaskStatus.FAILED, TaskStatus.CANCELLED},
-    TaskStatus.READY: {TaskStatus.RUNNING, TaskStatus.CANCELLED},
+    TaskStatus.READY: {TaskStatus.RUNNING, TaskStatus.WAITING_APPROVAL, TaskStatus.CANCELLED},
     TaskStatus.RUNNING: {
         TaskStatus.WAITING_APPROVAL,
         TaskStatus.RECOVERING,
