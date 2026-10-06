@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from packages.domain.models import Task, TaskStatus
-from packages.persistence.memory import InMemoryTaskRepository
 from packages.domain.repository import TaskNotFoundError
 from apps.api.database import get_task_repository
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
@@ -23,7 +22,6 @@ class TaskResponse(BaseModel):
     version: int
 
 
-_repository = InMemoryTaskRepository()
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
