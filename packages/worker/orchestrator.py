@@ -41,7 +41,7 @@ class TaskOrchestrator:
             task.error_message = decision.reason
             TaskStateMachine.transition(
                 task,
-                TaskStatus.CANCELLED,
+                TaskStatus.FAILED,
                 actor="POLICY_ENGINE",
                 reason=decision.reason,
             )
