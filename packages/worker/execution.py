@@ -7,7 +7,7 @@ This layer owns execution orchestration, not tool-specific automation.
 from dataclasses import dataclass
 from typing import Any, Mapping, Protocol
 
-from packages.domain.models import ActionStatus, TaskAction, ToolRisk
+from packages.domain.models import ActionStatus, PolicyOutcome, TaskAction, ToolRisk
 
 
 class ToolExecutionError(RuntimeError):
@@ -36,7 +36,10 @@ class ExecutionWorker:
             )
 
         policy = action.policy_decision
-        if policy is not None and policy.risk_level in {ToolRisk.HIGH, ToolRisk.CRITICAL}:
+        if policy is not None and (
+            policy.outcome == PolicyOutcome.REQUIRE_APPROVAL
+            or policy.risk_level in {ToolRisk.HIGH, ToolRisk.CRITICAL}
+        ):
             approval = action.approval_request
             if approval is None or approval.status.value != "APPROVED":
                 raise PermissionError(
