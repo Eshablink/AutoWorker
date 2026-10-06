@@ -16,7 +16,8 @@ def get_settings() -> Settings:
 def get_session_factory() -> sessionmaker[Session]:
     settings = get_settings()
     engine = create_engine(settings.database_url, pool_pre_ping=True)
-    Base.metadata.create_all(engine)
+    if settings.environment == "development":
+        Base.metadata.create_all(engine)
     return sessionmaker(engine, expire_on_commit=False)
 
 
