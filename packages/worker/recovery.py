@@ -57,7 +57,7 @@ class RecoveryCoordinator:
                 reason=task.error_message,
             )
             action.status = ActionStatus.FAILED
-            action.error = task.error_message
+            action.error_message = task.error_message
             return task
 
         TaskStateMachine.transition(
