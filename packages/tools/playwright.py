@@ -5,6 +5,7 @@ layers do not require a browser runtime.
 """
 
 from typing import Any
+from urllib.parse import urlparse
 
 from packages.tools.browser import (
     BrowserAction,
@@ -16,8 +17,14 @@ from packages.tools.browser import (
 
 
 class PlaywrightBrowserSession(BrowserSession):
-    def __init__(self, page: Any) -> None:
+    def __init__(self, page: Any, *, allowed_origins: frozenset[str] = frozenset()) -> None:
         self.page = page
+        self.allowed_origins = allowed_origins
+
+    def _assert_allowed_url(self, url: str) -> None:
+        origin = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+        if origin not in self.allowed_origins:
+            raise BrowserToolError(f"Navigation to origin '{origin}' is not allowed.")
 
     @classmethod
     def launch(cls, url: str, *, headless: bool = True) -> "PlaywrightBrowserSession":
@@ -32,7 +39,9 @@ class PlaywrightBrowserSession(BrowserSession):
         browser = runtime.chromium.launch(headless=headless)
         page = browser.new_page()
         page.goto(url, wait_until="domcontentloaded")
-        session = cls(page)
+        parsed = urlparse(url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        session = cls(page, allowed_origins=frozenset({origin}))
         session._runtime = runtime
         session._browser = browser
         return session
@@ -46,6 +55,7 @@ class PlaywrightBrowserSession(BrowserSession):
         if action.operation == "navigate":
             if not action.value:
                 raise BrowserToolError("Navigate actions require a URL.")
+            self._assert_allowed_url(action.value)
             self.page.goto(action.value, wait_until="domcontentloaded", timeout=action.timeout_seconds * 1000)
         elif action.operation == "click":
             if action.target is None:
