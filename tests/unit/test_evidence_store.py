@@ -1,5 +1,4 @@
 from packages.audit.evidence import EvidenceStore
-from packages.domain.models import EvidenceReference
 
 
 def test_evidence_store_is_content_addressed(tmp_path):
