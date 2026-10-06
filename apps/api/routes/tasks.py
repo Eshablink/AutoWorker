@@ -1,6 +1,6 @@
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from packages.domain.models import Task, TaskStatus
@@ -22,6 +22,23 @@ class TaskResponse(BaseModel):
     version: int
 
 
+
+
+@router.get("", response_model=list[TaskResponse])
+def list_tasks(
+    limit: int = Query(default=50, ge=1, le=100),
+    repository: SqlAlchemyTaskRepository = Depends(get_task_repository),
+) -> list[TaskResponse]:
+    tasks = repository.list_tasks(limit=limit)
+    return [
+        TaskResponse(
+            task_id=task.task_id,
+            goal=task.goal,
+            status=task.status,
+            version=task.version,
+        )
+        for task in tasks
+    ]
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
