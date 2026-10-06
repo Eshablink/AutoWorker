@@ -39,7 +39,7 @@ def create_task(request: CreateTaskRequest) -> TaskResponse:
 def get_task(task_id: UUID) -> TaskResponse:
     try:
         task = _repository.get(task_id)
-    except KeyError as exc:
+    except Exception as exc:
         raise HTTPException(status_code=404, detail="Task not found.") from exc
     return TaskResponse(
         task_id=task.task_id,
