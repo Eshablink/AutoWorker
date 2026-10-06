@@ -32,3 +32,10 @@ def test_repository_rejects_stale_version():
 
     with pytest.raises(ConcurrentUpdateError):
         repo.save(stale, audit(stale), expected_version=1)
+
+
+def test_repository_lists_tasks_with_limit():
+    repo = InMemoryTaskRepository()
+    repo.create(Task(goal="First invoice task"))
+    repo.create(Task(goal="Second invoice task"))
+    assert len(repo.list_tasks(limit=1)) == 1
