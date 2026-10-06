@@ -1,11 +1,13 @@
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from packages.domain.models import Task, TaskStatus
 from packages.persistence.memory import InMemoryTaskRepository
 from packages.domain.repository import TaskNotFoundError
+from apps.api.database import get_task_repository
+from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -25,9 +27,9 @@ _repository = InMemoryTaskRepository()
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(request: CreateTaskRequest) -> TaskResponse:
+def create_task(request: CreateTaskRequest, repository: SqlAlchemyTaskRepository = Depends(get_task_repository)) -> TaskResponse:
     task = Task(task_id=uuid4(), goal=request.goal)
-    _repository.create(task)
+    repository.create(task)
     return TaskResponse(
         task_id=task.task_id,
         goal=task.goal,
@@ -37,9 +39,9 @@ def create_task(request: CreateTaskRequest) -> TaskResponse:
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_task(task_id: UUID) -> TaskResponse:
+def get_task(task_id: UUID, repository: SqlAlchemyTaskRepository = Depends(get_task_repository)) -> TaskResponse:
     try:
-        task = _repository.get(task_id)
+        task = repository.get(task_id)
     except TaskNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Task not found.") from exc
     return TaskResponse(
