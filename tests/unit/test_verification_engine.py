@@ -13,6 +13,8 @@ def action():
 
 def test_verification_engine_passes_all_checks():
     item = action()
+    item.tool_output = {"status": "processed"}
+    item.observation = "Invoice processed successfully"
     result = VerificationEngine().verify(
         item.task_id,
         item,
