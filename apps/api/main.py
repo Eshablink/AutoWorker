@@ -1,7 +1,8 @@
 from uuid import uuid4
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from apps.api.database import get_session_factory
 from apps.api.routes.approvals import router as approvals_router
@@ -37,6 +38,11 @@ def ready() -> dict[str, str]:
     session = get_session_factory()()
     try:
         session.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database is unavailable.",
+        ) from exc
     finally:
         session.close()
     return {"status": "ready", "service": "autoworker-api"}
