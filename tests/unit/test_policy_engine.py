@@ -88,3 +88,44 @@ def test_action_from_different_task_is_rejected():
     )])
     with pytest.raises(ValueError, match="does not match"):
         PolicyEngine(registry).evaluate(task, make_action(other, make_tool.tool_id))
+
+
+def test_payload_aware_rule_can_deny_action_and_records_policy_version():
+    registry = ToolRegistry(
+        [
+            ToolDefinition(
+                tool_id="refund",
+                name="Refund",
+                description="Refund a customer",
+                input_schema={},
+                output_schema={},
+                is_side_effecting=True,
+                requires_idempotency_key=True,
+            )
+        ]
+    )
+    task = Task(goal="Process a refund safely")
+    action = TaskAction(
+        task_id=task.task_id,
+        step_number=1,
+        tool_id="refund",
+        idempotency_key="refund-1",
+        decision_summary="Refund customer",
+        tool_input={"amount": 50000},
+    )
+    engine = PolicyEngine(
+        registry,
+        rules=[
+            PolicyRule(
+                rule_id="refund-maximum",
+                reason="Refund amount exceeds configured limit.",
+                outcome=PolicyOutcome.DENY,
+                matches=lambda _task, current_action, _tool: current_action.tool_input.get("amount", 0) > 10000,
+            )
+        ],
+        policy_version="2026.1",
+    )
+    decision = engine.evaluate(task, action)
+    assert decision.outcome == PolicyOutcome.DENY
+    assert decision.policy_version == "2026.1"
+    assert "refund-maximum" in decision.evaluated_rules
