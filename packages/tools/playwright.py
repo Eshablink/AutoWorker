@@ -9,7 +9,6 @@ from typing import Any
 from packages.tools.browser import (
     BrowserAction,
     BrowserActionResult,
-    BrowserElement,
     BrowserObservation,
     BrowserSession,
     BrowserToolError,
