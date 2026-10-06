@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Dict, Optional, Set, Tuple
 
 from packages.domain.models import (
+    ActionStatus,
     ApprovalStatus,
     AuditEvent,
     PolicyOutcome,
@@ -123,6 +124,14 @@ class TaskStateMachine:
             return
 
         action = task.actions[task.current_step_index]
+        if action.task_id != task.task_id:
+            raise InvariantViolationError(
+                f"TaskAction task_id '{action.task_id}' does not match Task ID '{task.task_id}'."
+            )
+        if action.status not in {ActionStatus.PENDING, ActionStatus.APPROVED}:
+            raise InvariantViolationError(
+                f"Current TaskAction status '{action.status.value}' cannot execute."
+            )
         policy = action.policy_decision
         requires_idempotency = action.is_side_effecting or (
             policy is not None and policy.risk_level in {ToolRisk.HIGH, ToolRisk.CRITICAL}
@@ -133,6 +142,10 @@ class TaskStateMachine:
             )
         if policy is None:
             return
+        if policy.outcome == PolicyOutcome.DENY:
+            raise InvariantViolationError(
+                f"PolicyDecision denied execution: {policy.reason}"
+            )
         if policy.task_id != task.task_id:
             raise InvariantViolationError(
                 f"PolicyDecision task_id '{policy.task_id}' does not match Task ID '{task.task_id}'."
