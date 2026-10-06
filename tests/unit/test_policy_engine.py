@@ -21,6 +21,7 @@ def make_action(task, tool_id="browser_click", key=None):
 
 
 def test_low_risk_action_is_allowed():
+    task = make_task()
     registry = ToolRegistry([
         ToolDefinition(
             tool_id="browser_click",
@@ -31,7 +32,7 @@ def test_low_risk_action_is_allowed():
             risk_level=ToolRisk.LOW,
         )
     ])
-    decision = PolicyEngine(registry).evaluate(make_task(), make_action(make_task()))
+    decision = PolicyEngine(registry).evaluate(task, make_action(task))
     assert decision.outcome == PolicyOutcome.ALLOW
 
 
