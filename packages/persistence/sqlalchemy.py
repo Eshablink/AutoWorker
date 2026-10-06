@@ -88,10 +88,10 @@ class SqlAlchemyTaskRepository:
 
     def list_audit(self, task_id: UUID) -> list[AuditEvent]:
         rows = self.session.execute(
-            select(AuditRecord).where(AuditRecord.task_id == str(task_id)).order_by(AuditRecord.event_id)
+            select(AuditRecord).where(AuditRecord.task_id == str(task_id))
         ).scalars().all()
-        from packages.domain.models import AuditEvent
-        return [AuditEvent.model_validate(row.payload) for row in rows]
+        events = [AuditEvent.model_validate(row.payload) for row in rows]
+        return sorted(events, key=lambda event: event.timestamp)
 
     def append_audit(self, event: AuditEvent) -> None:
         self.session.add(
