@@ -47,6 +47,12 @@ class BrowserAction:
     timeout_seconds: int = 30
     metadata: dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if not self.operation.strip():
+            raise ValueError("Browser operation cannot be empty.")
+        if not 1 <= self.timeout_seconds <= 300:
+            raise ValueError("Browser action timeout must be between 1 and 300 seconds.")
+
 
 @dataclass(frozen=True)
 class BrowserActionResult:
