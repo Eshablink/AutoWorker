@@ -3,7 +3,7 @@
 from packages.tools.erp import ERPAdapter, ERPInvoice, ERPWriteRequest, ERPWriteResult
 
 
-class SimulatedERP(ERPAdapter):
+class SimulatedERP:
     def __init__(self) -> None:
         self._records: dict[str, ERPInvoice] = {}
 
