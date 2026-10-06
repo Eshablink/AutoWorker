@@ -5,7 +5,6 @@ from hashlib import sha256
 from pathlib import Path
 from uuid import UUID
 
-from packages.domain.models import EvidenceReference
 
 
 @dataclass(frozen=True)
@@ -42,7 +41,7 @@ class EvidenceStore:
         if destination.exists():
             existing = destination.read_bytes()
             if sha256(existing).hexdigest() != digest:
-                raise IOError("Existing evidence content does not match its content hash.")
+                raise OSError("Existing evidence content does not match its content hash.")
         else:
             destination.write_bytes(content)
         return EvidenceReference(
