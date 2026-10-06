@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 1 — Domain foundation
+Phase 1 — Execution safety foundation
 
 ## Completed
 - New GitHub repository and feature-branch workflow established.
@@ -12,10 +12,12 @@ Phase 1 — Domain foundation
 - Safety invariants added for terminal states, verification, idempotency, policy binding, and HITL approval binding.
 - Private chain-of-thought removed from the domain model; auditable decision summaries are used instead.
 - Domain unit tests validated locally: 18 passed.
+- Typed tool registry implemented with duplicate/missing-tool protection.
+- Deterministic policy engine implemented with risk and idempotency gates.
+- Policy engine unit tests added.
 
 ## Next
-- Add Python project/dependency configuration and CI.
-- Implement tool registry and policy engine around the domain contracts.
+- Harden policy rules with payload-aware authorization and policy versioning.
 - Introduce persistence adapters with PostgreSQL and optimistic concurrency.
 - Build the worker execution loop and API boundary.
 
