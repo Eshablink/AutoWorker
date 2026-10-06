@@ -40,13 +40,13 @@ class OCRResult:
 
 @dataclass(frozen=True)
 class InvoiceExtraction:
-    invoice_number: str | None
-    vendor_name: str | None
-    invoice_date: str | None
-    currency: str | None
-    subtotal: float | None
-    tax: float | None
-    total: float | None
+    invoice_number: str | None = None
+    vendor_name: str | None = None
+    invoice_date: str | None = None
+    currency: str | None = None
+    subtotal: float | None = None
+    tax: float | None = None
+    total: float | None = None
     line_items: tuple[dict[str, Any], ...] = ()
     confidence: float = 0.0
     source_document_id: UUID | None = None
