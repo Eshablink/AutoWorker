@@ -4,7 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from packages.audit.events import EventBus, EventType, TaskEvent
+from packages.audit.events import EventType, TaskEvent
+from apps.api.routes.events import event_bus
 from packages.domain.models import ActionStatus, ApprovalStatus, AuditEvent, TaskStatus
 from packages.domain.repository import TaskNotFoundError
 from packages.domain.state import TaskStateMachine
@@ -12,9 +13,6 @@ from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 from apps.api.database import get_task_repository
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
-event_bus = EventBus()
-
-
 class ApprovalDecision(BaseModel):
     status: ApprovalStatus
     comment: str | None = None
