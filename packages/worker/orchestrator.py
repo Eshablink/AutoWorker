@@ -163,14 +163,28 @@ class TaskOrchestrator:
                 reason="Verification passed.",
             )
         else:
-            TaskStateMachine.transition(
-                task,
-                TaskStatus.RECOVERING,
-                actor="ORCHESTRATOR",
-                reason="Verification failed; action requires recovery.",
-            )
-            action.status = ActionStatus.PENDING
-            action.retry_count += 1
+            if action.retry_count >= action.max_retries:
+                task.error_message = (
+                    f"Verification failed and action {action.action_id} reached "
+                    f"the maximum retry count of {action.max_retries}."
+                )
+                TaskStateMachine.transition(
+                    task,
+                    TaskStatus.FAILED,
+                    actor="ORCHESTRATOR",
+                    reason=task.error_message,
+                )
+                action.status = ActionStatus.FAILED
+                action.error_message = task.error_message
+            else:
+                TaskStateMachine.transition(
+                    task,
+                    TaskStatus.RECOVERING,
+                    actor="ORCHESTRATOR",
+                    reason="Verification failed; action requires recovery.",
+                )
+                action.status = ActionStatus.PENDING
+                action.retry_count += 1
         self._publish_state(task, "Verification lifecycle transition completed.")
         return task
 
