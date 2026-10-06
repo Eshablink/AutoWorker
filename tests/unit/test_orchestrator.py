@@ -5,6 +5,7 @@ from packages.policy.engine import PolicyEngine
 from packages.tools.registry import ToolRegistry
 from packages.worker.execution import ExecutionWorker, ToolExecutionResult
 from packages.worker.orchestrator import TaskOrchestrator
+from packages.verification.engine import VerificationCheck
 
 
 class FakeExecutor:
@@ -89,3 +90,41 @@ def test_orchestrator_requires_actions():
 
     with pytest.raises(ValueError, match="no actions"):
         orchestrator.prepare(task)
+
+
+def test_orchestrator_verifies_and_completes():
+    registry = ToolRegistry([
+        ToolDefinition(
+            tool_id="safe_tool",
+            name="Safe",
+            description="Safe test tool",
+            input_schema={},
+            output_schema={},
+        )
+    ])
+    orchestrator = TaskOrchestrator(
+        registry,
+        PolicyEngine(registry),
+        ExecutionWorker(FakeExecutor()),
+    )
+    task = make_task()
+    orchestrator.prepare(task)
+    orchestrator.execute_current(task)
+
+    completed = orchestrator.verify_current(
+        task,
+        checks=[
+            VerificationCheck(
+                "output-present",
+                lambda action: (bool(action.tool_output), {"present": True}),
+            ),
+            VerificationCheck(
+                "observation-present",
+                lambda action: (bool(action.observation), {"present": True}),
+            ),
+        ],
+    )
+
+    assert completed.status == TaskStatus.COMPLETED
+    assert completed.verification_result is not None
+    assert completed.verification_result.success is True
