@@ -1,7 +1,7 @@
 import pytest
 
 from packages.domain.models import ActionStatus, TaskAction
-from packages.worker.execution import ExecutionWorker, ToolExecutionResult
+from packages.worker.execution import ExecutionWorker, InMemoryIdempotencyStore, ToolExecutionResult
 
 
 class FakeExecutor:
@@ -58,3 +58,27 @@ def test_worker_rejects_high_risk_action_without_approval():
     action.idempotency_key = "worker-test-1"
     with pytest.raises(PermissionError, match="approved HITL"):
         ExecutionWorker(FakeExecutor()).execute_action(action)
+
+
+def test_side_effecting_action_reuses_idempotent_result_without_reexecuting():
+    calls = []
+
+    class CountingExecutor:
+        def execute(self, action):
+            calls.append(action.action_id)
+            return ToolExecutionResult(output={"posted": True}, observation="Posted once")
+
+    store = InMemoryIdempotencyStore()
+    worker = ExecutionWorker(CountingExecutor(), store)
+    action = TaskAction(
+        step_number=1,
+        tool_id="erp_submit",
+        is_side_effecting=True,
+        idempotency_key="invoice-101",
+        decision_summary="Submit invoice",
+    )
+    first = worker.execute_action(action)
+    action.status = ActionStatus.PENDING
+    second = worker.execute_action(action)
+    assert first == second
+    assert len(calls) == 1
