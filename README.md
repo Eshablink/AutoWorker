@@ -2,27 +2,50 @@
 
 **Autonomous AI Computer Worker Engine**
 
-AutoWorker is a production-oriented AI worker platform designed to turn high-level operational goals into controlled, verifiable computer actions.
+AutoWorker turns high-level operational goals into controlled, verifiable computer actions.
 
-> **Status:** Early foundation / active development.
+> Status: Phase 4 — autonomous capability layer; foundation under active development.
 
-## Core idea
-Goal → Plan → Policy → Execute → Recover → Verify → Audit
+## Execution model
+
+Goal → Plan → Policy → HITL → Execute → Recover → Verify → Evidence → Audit
+
+The domain state machine is authoritative for lifecycle safety. LLM or agent providers propose work; policy and typed tools control side effects.
 
 ## Flagship workflow
-Controlled invoice processing across a source document and test ERP, including validation-error recovery, verification, human approval gates, and structured evidence.
 
-## Architecture
-See [ARCHITECTURE.md](ARCHITECTURE.md).
+1. Accept a natural-language operational goal.
+2. Generate structured tool proposals.
+3. Extract and validate invoice data with provenance.
+4. Evaluate deterministic safety policy and idempotency requirements.
+5. Pause for human approval for risky financial actions.
+6. Interact with a controlled ERP through typed adapters or Playwright.
+7. Handle validation failures with bounded recovery.
+8. Verify the resulting ERP record.
+9. Store checksum-addressed evidence and audit history.
 
-## Development
-The repository is being built phase-by-phase with automated tests, containerization, CI, and deployment validation.
+The repository includes a deterministic simulated ERP for local demonstrations and tests; simulated integrations are separated from real adapters.
 
-## Project documents
-- [PROJECT_BRIEF.md](PROJECT_BRIEF.md)
-- [ARCHITECTURE.md](ARCHITECTURE.md)
-- [DECISIONS.md](DECISIONS.md)
-- [PROGRESS.md](PROGRESS.md)
+## Repository layout
 
-## Safety
-This project is designed around controlled execution. It must not provide unrestricted computer control or bypass authorization/policy boundaries.
+- apps/api — FastAPI control plane and persistence dependency boundary.
+- apps/web — React + TypeScript operations dashboard.
+- packages/domain — lifecycle state machine and safety invariants.
+- packages/agent and packages/planning — structured agent and execution-plan boundaries.
+- packages/policy — deterministic authorization rules.
+- packages/worker — execution, idempotency, leases, recovery, orchestration.
+- packages/tools — browser, document, ERP, and registry contracts.
+- packages/memory — task-scoped memory abstraction.
+- packages/audit and packages/workflows — evidence plus flagship workflow composition.
+- infra/alembic — database migrations.
+- tests — automated coverage.
+
+## Local development
+
+Install Python dependencies, run pytest, and run Ruff against packages, apps, and tests. The API exposes /health and /ready. The React dashboard uses /api as its reverse-proxied API base in production.
+
+## Safety guarantees
+
+No private chain-of-thought is persisted. Side-effecting actions require idempotency keys, high-risk operations require explicit HITL approval, terminal tasks cannot be mutated, and verification is required before completion.
+
+See PROJECT_BRIEF.md, ARCHITECTURE.md, DECISIONS.md, and PROGRESS.md.

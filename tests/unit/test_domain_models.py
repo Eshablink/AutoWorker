@@ -1,0 +1,97 @@
+import pytest
+from uuid import uuid4
+from pydantic import ValidationError
+
+from packages.domain.models import (
+    AuditEvent,
+    EvidenceReference,
+    PolicyDecision,
+    PolicyOutcome,
+    Task,
+    TaskAction,
+    TaskStatus,
+    ToolDefinition,
+    ToolRisk,
+)
+
+
+def test_task_creation_defaults():
+    task = Task(goal="Process invoice and verify entry in ERP database.")
+    assert task.status == TaskStatus.CREATED
+    assert task.version == 1
+    assert task.current_step_index == 0
+    assert task.actions == []
+    assert task.context_memory == {}
+
+
+def test_blank_goal_raises_validation_error():
+    with pytest.raises(ValidationError):
+        Task(goal="   ")
+
+
+def test_task_action_uses_auditable_summary_not_private_thought():
+    action = TaskAction(
+        task_id=uuid4(),
+        step_number=1,
+        tool_id="browser_click",
+        decision_summary="Click email attachment link to access PDF invoice.",
+        reason_code="DOCUMENT_OPEN",
+    )
+    assert action.decision_summary
+    assert not hasattr(action, "thought_rationale")
+
+
+def test_action_retry_count_exceeding_max_raises_error():
+    with pytest.raises(ValidationError, match="retry_count"):
+        TaskAction(
+            task_id=uuid4(),
+            step_number=1,
+            tool_id="browser_click",
+            decision_summary="Retry submission",
+            retry_count=4,
+            max_retries=3,
+        )
+
+
+def test_high_risk_policy_outcome_allow_is_forbidden():
+    with pytest.raises(ValidationError, match="High-risk tool calls"):
+        PolicyDecision(
+            task_id=uuid4(),
+            action_id=uuid4(),
+            tool_id="execute_payment_refund",
+            outcome=PolicyOutcome.ALLOW,
+            risk_level=ToolRisk.HIGH,
+            reason="Illegal bypass attempt",
+        )
+
+
+def test_tool_definition_timeout_bounds():
+    with pytest.raises(ValidationError):
+        ToolDefinition(
+            tool_id="test_tool",
+            name="Test",
+            description="Desc",
+            input_schema={},
+            output_schema={},
+            timeout_seconds=0,
+        )
+
+
+def test_evidence_reference_non_empty_validation():
+    with pytest.raises(ValidationError, match="cannot be empty"):
+        EvidenceReference(
+            task_id=uuid4(),
+            kind="   ",
+            uri_or_path="s3://evidence/shot.png",
+        )
+
+
+def test_audit_event_immutability():
+    event = AuditEvent(
+        task_id=uuid4(),
+        event_type="STATE_TRANSITION",
+        actor="WORKER",
+        details={"status": "RUNNING"},
+    )
+    with pytest.raises(ValidationError):
+        event.actor = "HACKER"

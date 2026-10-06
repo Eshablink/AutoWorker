@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: autoworker
+      POSTGRES_USER: autoworker
+      POSTGRES_PASSWORD: autoworker
+    ports: ["5432:5432"]
+    volumes: [autoworker_pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autoworker -d autoworker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://autoworker:autoworker@postgres:5432/autoworker
+      AUTOWORKER_ENV: production
+    ports: ["8000:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: apps/web
+      dockerfile: Dockerfile
+    ports: ["3000:80"]
+    depends_on: [api]
+
+volumes:
+  autoworker_pgdata:
