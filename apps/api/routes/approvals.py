@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from packages.audit.events import EventBus, EventType, TaskEvent
-from packages.domain.models import ApprovalStatus, TaskStatus
+from packages.domain.models import ActionStatus, ApprovalStatus, AuditEvent, TaskStatus
 from packages.domain.repository import TaskNotFoundError
 from packages.domain.state import TaskStateMachine
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
@@ -60,7 +60,7 @@ def decide_approval(
     approval.decided_at = datetime.now(timezone.utc)
 
     if decision.status == ApprovalStatus.APPROVED:
-        action.status = __import__("packages.domain.models", fromlist=["ActionStatus"]).ActionStatus.APPROVED
+        action.status = ActionStatus.APPROVED
         TaskStateMachine.transition(
             task,
             TaskStatus.RUNNING,
@@ -68,7 +68,7 @@ def decide_approval(
             reason="Human approval granted.",
         )
     else:
-        action.status = __import__("packages.domain.models", fromlist=["ActionStatus"]).ActionStatus.REJECTED
+        action.status = ActionStatus.REJECTED
         TaskStateMachine.transition(
             task,
             TaskStatus.CANCELLED,
@@ -76,8 +76,7 @@ def decide_approval(
             reason=decision.comment or "Human approval rejected.",
         )
 
-    _, audit = TaskStateMachine.transition if False else (task, None)
-    repository.save(task, audit_event=__import__("packages.domain.models", fromlist=["AuditEvent"]).AuditEvent(
+    repository.save(task, audit_event=AuditEvent(
         task_id=task.task_id,
         action_id=action.action_id,
         event_type="APPROVAL_DECIDED",
