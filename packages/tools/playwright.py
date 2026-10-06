@@ -11,7 +11,6 @@ from packages.tools.browser import (
     BrowserAction,
     BrowserActionResult,
     BrowserObservation,
-    BrowserSession,
     BrowserToolError,
 )
 
