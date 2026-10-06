@@ -44,6 +44,12 @@ class SqlAlchemyTaskRepository:
             raise TaskNotFoundError(str(task_id))
         return task_from_record(row.payload)
 
+    def list_tasks(self, *, limit: int = 50) -> list[Task]:
+        if limit < 1:
+            raise ValueError("limit must be at least 1.")
+        rows = self.session.execute(select(TaskRecord).limit(limit)).scalars().all()
+        return [task_from_record(row.payload) for row in rows]
+
     def create(self, task: Task) -> Task:
         if self.session.get(TaskRecord, str(task.task_id)) is not None:
             raise ConcurrentUpdateError(f"Task {task.task_id} already exists.")
