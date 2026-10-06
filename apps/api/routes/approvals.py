@@ -4,8 +4,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from packages.audit.events import EventType, TaskEvent
-from apps.api.routes.events import event_bus
 from packages.domain.models import ActionStatus, ApprovalStatus, AuditEvent, TaskStatus
 from packages.domain.repository import TaskNotFoundError
 from packages.domain.state import TaskStateMachine
@@ -61,7 +59,7 @@ def decide_approval(
 
     if decision.status == ApprovalStatus.APPROVED:
         action.status = ActionStatus.APPROVED
-        TaskStateMachine.transition(
+        _, state_audit = TaskStateMachine.transition(
             task,
             TaskStatus.RUNNING,
             actor="HUMAN_APPROVER",
@@ -69,16 +67,16 @@ def decide_approval(
         )
     else:
         action.status = ActionStatus.REJECTED
-        TaskStateMachine.transition(
+        _, state_audit = TaskStateMachine.transition(
             task,
             TaskStatus.CANCELLED,
             actor="HUMAN_APPROVER",
             reason=decision.comment or "Human approval rejected.",
         )
 
-    repository.save(
-        task,
-        audit_event=AuditEvent(
+    repository.save(task, audit_event=state_audit, expected_version=previous_version)
+    repository.append_audit(
+        AuditEvent(
             task_id=task.task_id,
             action_id=action.action_id,
             event_type="APPROVAL_DECIDED",
@@ -87,19 +85,6 @@ def decide_approval(
                 "approval_id": str(approval_id),
                 "status": decision.status.value,
                 "approver_id": decision.approver_id,
-            },
-        ),
-        expected_version=previous_version,
-    )
-
-    event_bus.publish(
-        TaskEvent(
-            task_id=task.task_id,
-            action_id=action.action_id,
-            event_type=EventType.APPROVAL_DECIDED,
-            payload={
-                "approval_id": str(approval_id),
-                "status": decision.status.value,
             },
         )
     )
