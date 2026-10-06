@@ -2,8 +2,6 @@
 
 from dataclasses import dataclass
 from decimal import Decimal
-from uuid import UUID
-
 from packages.documents.contracts import DocumentExtraction
 
 
