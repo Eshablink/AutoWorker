@@ -1,7 +1,7 @@
 import pytest
 
 from packages.domain.models import PolicyOutcome, Task, TaskAction, ToolRisk, ToolDefinition
-from packages.policy.engine import PolicyEngine
+from packages.policy.engine import PolicyEngine, PolicyRule
 from packages.tools.registry import ToolRegistry
 
 
