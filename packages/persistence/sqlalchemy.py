@@ -78,6 +78,14 @@ class SqlAlchemyTaskRepository:
         )
         return task
 
+    def find_by_approval_id(self, approval_id: UUID) -> Task:
+        rows = self.session.execute(select(TaskRecord)).scalars().all()
+        for row in rows:
+            task = task_from_record(row.payload)
+            if any(action.approval_request and action.approval_request.approval_id == approval_id for action in task.actions):
+                return task
+        raise TaskNotFoundError(str(approval_id))
+
     def append_audit(self, event: AuditEvent) -> None:
         self.session.add(
             AuditRecord(
