@@ -5,6 +5,8 @@ from hashlib import sha256
 from pathlib import Path
 from uuid import UUID
 
+from packages.domain.models import EvidenceReference
+
 
 
 @dataclass(frozen=True)
