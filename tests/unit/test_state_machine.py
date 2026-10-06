@@ -167,3 +167,41 @@ def test_policy_tool_binding_mismatch_rejected(sample_task):
     task = _ready(sample_task)
     with pytest.raises(InvariantViolationError, match="PolicyDecision tool_id"):
         TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")
+
+
+def test_running_transition_rejects_action_from_another_task(sample_task):
+    other_task = Task(goal="Another task")
+    action = TaskAction(
+        task_id=other_task.task_id,
+        step_number=1,
+        tool_id="browser_click",
+        decision_summary="Click button",
+    )
+    sample_task.actions = [action]
+    task = _ready(sample_task)
+    with pytest.raises(InvariantViolationError, match="TaskAction task_id"):
+        TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")
+
+
+def test_running_transition_rejects_denied_policy(sample_task):
+    action = TaskAction(
+        task_id=sample_task.task_id,
+        step_number=1,
+        tool_id="execute_refund",
+        idempotency_key="refund-1",
+        is_side_effecting=True,
+        decision_summary="Execute refund",
+        policy_decision=PolicyDecision(
+            task_id=sample_task.task_id,
+            action_id=uuid4(),
+            tool_id="execute_refund",
+            outcome=PolicyOutcome.DENY,
+            risk_level=ToolRisk.LOW,
+            reason="Refund is blocked by policy.",
+        ),
+    )
+    action.policy_decision = action.policy_decision.model_copy(update={"action_id": action.action_id})
+    sample_task.actions = [action]
+    task = _ready(sample_task)
+    with pytest.raises(InvariantViolationError, match="denied execution"):
+        TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")
