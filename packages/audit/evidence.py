@@ -55,7 +55,10 @@ class EvidenceStore:
         )
 
     def read(self, reference: EvidenceReference) -> bytes:
-        path = self.root / reference.uri_or_path
+        path = (self.root / reference.uri_or_path).resolve()
+        root = self.root.resolve()
+        if root not in path.parents:
+            raise IOError("Evidence reference escapes the evidence store root.")
         if not path.is_file():
             raise FileNotFoundError(reference.uri_or_path)
         content = path.read_bytes()
