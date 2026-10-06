@@ -7,7 +7,7 @@ This layer owns execution orchestration, not tool-specific automation.
 from dataclasses import dataclass
 from typing import Any, Mapping, Protocol
 
-from packages.domain.models import ActionStatus, TaskAction
+from packages.domain.models import ActionStatus, TaskAction, ToolRisk
 
 
 class ToolExecutionError(RuntimeError):
@@ -33,6 +33,19 @@ class ExecutionWorker:
         if action.status not in {ActionStatus.PENDING, ActionStatus.APPROVED}:
             raise ValueError(
                 f"Action {action.action_id} cannot execute from status '{action.status.value}'."
+            )
+
+        policy = action.policy_decision
+        if policy is not None and policy.risk_level in {ToolRisk.HIGH, ToolRisk.CRITICAL}:
+            approval = action.approval_request
+            if approval is None or approval.status.value != "APPROVED":
+                raise PermissionError(
+                    f"Action {action.action_id} cannot execute without approved HITL authorization."
+                )
+
+        if action.is_side_effecting and not (action.idempotency_key and action.idempotency_key.strip()):
+            raise PermissionError(
+                f"Action {action.action_id} cannot execute without an idempotency key."
             )
 
         result = self.executor.execute(action)
