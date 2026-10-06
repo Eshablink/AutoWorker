@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from packages.domain.models import Task, TaskStatus
 from packages.persistence.memory import InMemoryTaskRepository
+from packages.domain.repository import TaskNotFoundError
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -39,7 +40,7 @@ def create_task(request: CreateTaskRequest) -> TaskResponse:
 def get_task(task_id: UUID) -> TaskResponse:
     try:
         task = _repository.get(task_id)
-    except Exception as exc:
+    except TaskNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Task not found.") from exc
     return TaskResponse(
         task_id=task.task_id,
