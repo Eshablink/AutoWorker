@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 1 — Execution safety foundation
+Phase 2 — Worker execution foundation
 
 ## Completed
 - New GitHub repository and feature-branch workflow established.
@@ -18,6 +18,9 @@ Phase 1 — Execution safety foundation
 
 ## Next
 - Harden policy rules with payload-aware authorization and policy versioning.
+- Define repository protocol with optimistic-concurrency semantics.
+- Add injected worker execution boundary and safety gates.
+- Add worker execution unit coverage.
 - Introduce persistence adapters with PostgreSQL and optimistic concurrency.
 - Build the worker execution loop and API boundary.
 
