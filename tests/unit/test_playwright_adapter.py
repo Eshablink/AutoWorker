@@ -1,6 +1,9 @@
-from packages.tools.playwright import PlaywrightBrowserSession
-from packages.tools.browser import BrowserAction
 from uuid import uuid4
+
+import pytest
+
+from packages.tools.browser import BrowserAction, BrowserToolError
+from packages.tools.playwright import PlaywrightBrowserSession
 
 
 class FakePage:
@@ -26,12 +29,8 @@ def test_playwright_adapter_observes_fake_page():
 def test_playwright_adapter_rejects_unknown_operation():
     session = PlaywrightBrowserSession(FakePage())
     action = BrowserAction(task_id=uuid4(), action_id=uuid4(), operation="delete_all")
-    try:
+    with pytest.raises(BrowserToolError, match="Unsupported browser operation"):
         session.execute(action)
-    except Exception as exc:
-        assert "Unsupported browser operation" in str(exc)
-    else:
-        raise AssertionError("Expected unsupported operation to fail")
 
 
 def test_playwright_adapter_blocks_unapproved_navigation():
