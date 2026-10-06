@@ -32,3 +32,15 @@ def test_playwright_adapter_rejects_unknown_operation():
         assert "Unsupported browser operation" in str(exc)
     else:
         raise AssertionError("Expected unsupported operation to fail")
+
+
+def test_playwright_adapter_blocks_unapproved_navigation():
+    session = PlaywrightBrowserSession(FakePage(), allowed_origins=frozenset({"https://erp.local"}))
+    action = BrowserAction(
+        task_id=uuid4(),
+        action_id=uuid4(),
+        operation="navigate",
+        value="https://example.com",
+    )
+    with pytest.raises(BrowserToolError, match="not allowed"):
+        session.execute(action)
