@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 2 — Worker execution foundation
+Phase 2 — Durable execution foundation
 
 ## Completed
 - New GitHub repository and feature-branch workflow established.
@@ -21,6 +21,7 @@ Phase 2 — Worker execution foundation
 - Define repository protocol with optimistic-concurrency semantics.
 - Add injected worker execution boundary and safety gates.
 - Add worker execution unit coverage.
+- Add stable domain serialization for durable persistence.
 - Introduce persistence adapters with PostgreSQL and optimistic concurrency.
 - Build the worker execution loop and API boundary.
 
