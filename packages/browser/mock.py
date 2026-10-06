@@ -2,7 +2,7 @@
 
 from uuid import UUID, uuid4
 
-from packages.browser.contracts import BrowserActionResult, BrowserAdapter, BrowserLocator, BrowserObservation
+from packages.browser.contracts import BrowserActionResult, BrowserLocator, BrowserObservation
 
 
 class MockBrowserSession:
