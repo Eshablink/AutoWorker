@@ -1,6 +1,6 @@
 """Deterministic in-memory ERP used only for tests and the local demo."""
 
-from packages.tools.erp import ERPAdapter, ERPInvoice, ERPWriteRequest, ERPWriteResult
+from packages.tools.erp import ERPInvoice, ERPWriteRequest, ERPWriteResult
 
 
 class SimulatedERP:
