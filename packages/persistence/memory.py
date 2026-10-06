@@ -36,6 +36,13 @@ class InMemoryTaskRepository:
         self._audit.append(deepcopy(audit_event))
         return deepcopy(task)
 
+    def find_by_approval_id(self, approval_id: UUID) -> Task:
+        for task in self._tasks.values():
+            for action in task.actions:
+                if action.approval_request and action.approval_request.approval_id == approval_id:
+                    return deepcopy(task)
+        raise TaskNotFoundError(str(approval_id))
+
     def append_audit(self, event: AuditEvent) -> None:
         self._audit.append(deepcopy(event))
 
