@@ -50,3 +50,12 @@ Update this file after each meaningful milestone. Do not mark work complete unti
 - Durable task listing and audit-history API foundations.
 - Database-backed readiness probe and migration-first container startup.
 - CI upgraded to current Node 24-compatible GitHub Actions releases.
+
+
+## Hardening updates
+- Policy-denied actions are terminally failed and cannot be forced into RUNNING by the state machine.
+- Current action/task identity and executable action status are validated before RUNNING.
+- Worker execution has a process-local idempotency store boundary to prevent duplicate side effects during retries.
+- Playwright navigation is restricted to an explicit origin allowlist.
+- API readiness returns 503 on database failure and request correlation IDs are returned on API responses.
+- Environment template now matches runtime settings and includes evidence/provider configuration.
