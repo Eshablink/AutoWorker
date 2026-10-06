@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 2 — Durable execution foundation
+Phase 3 — Full-stack execution platform
 
 ## Completed
 - New GitHub repository and feature-branch workflow established.
@@ -27,3 +27,12 @@ Phase 2 — Durable execution foundation
 
 ## Rule
 Update this file after each meaningful milestone. Do not mark work complete until validated.
+
+
+## Full-stack milestone
+- FastAPI task, approval, and event endpoints.
+- SQLAlchemy/Alembic durable persistence foundation with PostgreSQL/pgvector infrastructure.
+- Worker leases, heartbeat, recovery, orchestration, and verification.
+- Operational event bus with no private chain-of-thought.
+- React/Vite premium operations dashboard foundation.
+- Docker Compose stack for PostgreSQL, API, and web dashboard.
