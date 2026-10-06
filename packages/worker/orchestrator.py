@@ -1,6 +1,6 @@
 """Task execution orchestration across policy, worker, and domain state."""
 
-from packages.domain.models import Task, TaskStatus
+from packages.domain.models import ActionStatus, PolicyOutcome, Task, TaskStatus
 from packages.domain.state import TaskStateMachine
 from packages.policy.engine import PolicyEngine
 from packages.tools.registry import ToolRegistry
@@ -30,14 +30,15 @@ class TaskOrchestrator:
         decision = self.policy_engine.evaluate(task, action)
         action.policy_decision = decision
 
-        if decision.outcome.value == "DENY":
-            task.status = TaskStatus.FAILED
+        if decision.outcome == PolicyOutcome.DENY:
             task.error_message = decision.reason
+            TaskStateMachine.transition(task, TaskStatus.CANCELLED, actor="POLICY_ENGINE", reason=decision.reason)
             return task
 
-        if decision.outcome.value == "REQUIRE_APPROVAL":
+        if decision.outcome == PolicyOutcome.REQUIRE_APPROVAL:
             task.status = TaskStatus.WAITING_APPROVAL
-            action.status = action.status.WAITING_APPROVAL
+            action.status = ActionStatus.WAITING_APPROVAL
+            task.version += 1
             return task
 
         TaskStateMachine.transition(task, TaskStatus.RUNNING, actor="ORCHESTRATOR")
