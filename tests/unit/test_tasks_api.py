@@ -26,3 +26,14 @@ def test_create_task_rejects_short_goal():
 def test_get_missing_task_returns_404():
     response = client.get("/tasks/00000000-0000-0000-0000-000000000000")
     assert response.status_code == 404
+
+
+def test_list_tasks_returns_created_tasks():
+    first = client.post("/tasks", json={"goal": "First operational task"}).json()
+    second = client.post("/tasks", json={"goal": "Second operational task"}).json()
+
+    response = client.get("/tasks?limit=10")
+    assert response.status_code == 200
+    ids = {item["task_id"] for item in response.json()}
+    assert first["task_id"] in ids
+    assert second["task_id"] in ids
