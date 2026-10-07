@@ -99,7 +99,7 @@ function App() {
       <aside className="rail">
         <div className="brand"><span>AW</span><div><b>AutoWorker</b><small>Autonomous operations</small></div></div>
         <nav><a className="active">Overview</a><a>Tasks</a><a>Approvals</a><a>Evidence</a><a>Workers</a></nav>
-        <div className="worker"><i />Worker cluster <strong>Online</strong></div>
+        <div className="worker"><i />Control plane <strong>Online</strong></div>
       </aside>
 
       <section className="content">
@@ -119,10 +119,10 @@ function App() {
 
         <section className="hero">
           <div>
-            <div className="live"><i /> LIVE WORKER</div>
+            <div className="live"><i /> CONTROL PLANE</div>
             <h2>{active?.goal ?? "Ready for your first task"}</h2>
-            <p>{active ? `Task ${active.task_id.slice(0, 8)} · current state: ${statusLabel}` : "Create a task to watch AutoWorker move from intent to verified outcome."}</p>
-            <div className="progress" aria-label={`Task progress ${progress}%`}><span style={{ width: `${progress}%` }} /></div>
+            <p>{active ? `Task ${active.task_id.slice(0, 8)} · current state: ${statusLabel}` : "Create a task to inspect its lifecycle and persisted audit trail."}</p>
+            <div className="progress" aria-label={`Lifecycle progress ${progress}%`}><span style={{ width: `${progress}%` }} /></div>
             <small>{active ? `Version ${active.version} · ${statusLabel}` : "Waiting for first task"}</small>
           </div>
           <div className="orb"><div>AI<br /><b>WORKER</b></div></div>
