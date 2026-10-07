@@ -40,3 +40,19 @@ export function createTask(goal: string): Promise<TaskSummary> {
     body: JSON.stringify({goal}),
   });
 }
+
+export interface TaskEvent {
+  event_id: string;
+  task_id: string;
+  action_id?: string | null;
+  event_type: string;
+  actor: string;
+  details: Record<string, unknown>;
+  timestamp: string;
+}
+
+export function listTaskEvents(taskId: string, limit = 100): Promise<TaskEvent[]> {
+  return request<{task_id: string; events: TaskEvent[]}>(`/tasks/${taskId}/events?limit=${limit}`).then(
+    (response) => response.events,
+  );
+}

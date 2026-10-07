@@ -1,12 +1,14 @@
 """Task execution orchestration across policy, worker, and domain state."""
 
+from datetime import datetime, timedelta, timezone
+
+from packages.audit.events import EventBus, EventType, TaskEvent
 from packages.domain.models import ActionStatus, ApprovalRequest, PolicyOutcome, Task, TaskStatus
 from packages.domain.state import TaskStateMachine
 from packages.policy.engine import PolicyEngine
 from packages.tools.registry import ToolRegistry
-from packages.worker.execution import ExecutionWorker, ToolExecutionResult
-from packages.audit.events import EventBus, EventType, TaskEvent
 from packages.verification.engine import VerificationCheck, VerificationEngine
+from packages.worker.execution import ExecutionWorker, ToolExecutionResult
 
 
 class TaskOrchestrator:
@@ -65,6 +67,7 @@ class TaskOrchestrator:
                 payload_summary=action.tool_input,
                 risk_level=decision.risk_level,
                 reason_required=decision.reason,
+                expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
             )
             action.status = ActionStatus.WAITING_APPROVAL
             self.event_bus.publish(
@@ -92,9 +95,17 @@ class TaskOrchestrator:
             raise ValueError("Task current action is unavailable.")
 
         action = task.actions[task.current_step_index]
+        if action.task_id != task.task_id:
+            raise ValueError("Current action task_id does not match task task_id.")
+        if action.status not in {ActionStatus.PENDING, ActionStatus.APPROVED}:
+            raise ValueError(
+                f"Current action cannot execute from status '{action.status.value}'."
+            )
+
         self.event_bus.publish(
             TaskEvent(
                 task_id=task.task_id,
+                action_id=action.action_id,
                 event_type=EventType.ACTION_STARTED,
                 payload={"action_id": str(action.action_id), "tool_id": action.tool_id},
             )
@@ -103,6 +114,7 @@ class TaskOrchestrator:
             result = self.worker.execute_action(action)
         except Exception as exc:
             action.error_message = str(exc)
+            action.status = ActionStatus.FAILED
             self.event_bus.publish(
                 TaskEvent(
                     task_id=task.task_id,
@@ -130,6 +142,13 @@ class TaskOrchestrator:
             raise ValueError("Task current action is unavailable.")
 
         action = task.actions[task.current_step_index]
+        if action.task_id != task.task_id:
+            raise ValueError("Current action task_id does not match task task_id.")
+        if action.status != ActionStatus.COMPLETED:
+            raise ValueError(
+                f"Current action must be COMPLETED before verification; got '{action.status.value}'."
+            )
+
         TaskStateMachine.transition(
             task,
             TaskStatus.VERIFYING,
@@ -162,29 +181,30 @@ class TaskOrchestrator:
                 actor="ORCHESTRATOR",
                 reason="Verification passed.",
             )
+        elif action.retry_count >= action.max_retries:
+            task.error_message = (
+                f"Verification failed and action {action.action_id} reached "
+                f"the maximum retry count of {action.max_retries}."
+            )
+            TaskStateMachine.transition(
+                task,
+                TaskStatus.FAILED,
+                actor="ORCHESTRATOR",
+                reason=task.error_message,
+            )
+            action.status = ActionStatus.FAILED
+            action.error_message = task.error_message
         else:
-            if action.retry_count >= action.max_retries:
-                task.error_message = (
-                    f"Verification failed and action {action.action_id} reached "
-                    f"the maximum retry count of {action.max_retries}."
-                )
-                TaskStateMachine.transition(
-                    task,
-                    TaskStatus.FAILED,
-                    actor="ORCHESTRATOR",
-                    reason=task.error_message,
-                )
-                action.status = ActionStatus.FAILED
-                action.error_message = task.error_message
-            else:
-                TaskStateMachine.transition(
-                    task,
-                    TaskStatus.RECOVERING,
-                    actor="ORCHESTRATOR",
-                    reason="Verification failed; action requires recovery.",
-                )
-                action.status = ActionStatus.PENDING
-                action.retry_count += 1
+            TaskStateMachine.transition(
+                task,
+                TaskStatus.RECOVERING,
+                actor="ORCHESTRATOR",
+                reason="Verification failed; action requires recovery.",
+            )
+            action.status = ActionStatus.PENDING
+            action.retry_count += 1
+            action.error_message = None
+
         self._publish_state(task, "Verification lifecycle transition completed.")
         return task
 

@@ -6,6 +6,7 @@ outside the domain layer.
 """
 
 from dataclasses import dataclass, field
+import re
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -26,6 +27,14 @@ class BrowserElement:
     text: str | None = None
     attributes: dict[str, str] = field(default_factory=dict)
     bbox: tuple[float, float, float, float] | None = None
+
+    def __post_init__(self) -> None:
+        if not self.element_id.strip():
+            raise ValueError("Browser element_id cannot be empty.")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", self.element_id):
+            raise ValueError("Browser element_id must be a safe selector token.")
+        if not self.role.strip():
+            raise ValueError("Browser element role cannot be empty.")
 
 
 @dataclass(frozen=True)

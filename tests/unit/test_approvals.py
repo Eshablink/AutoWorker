@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from apps.api.routes.approvals import ApprovalDecision, decide_approval
@@ -87,3 +88,22 @@ def test_rejected_request_cancels_task():
     assert updated.status == TaskStatus.CANCELLED
     assert updated.actions[0].status == ActionStatus.REJECTED
     assert len(repo.list_audit(task.task_id)) == 2
+
+
+def test_expired_approval_is_failed_and_not_accepted():
+    repo = InMemoryTaskRepository()
+    task, approval = waiting_task()
+    approval.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    repo.create(task)
+
+    result = decide_approval(
+        approval.approval_id,
+        ApprovalDecision(status=ApprovalStatus.APPROVED, approver_id="manager"),
+        repo,
+    )
+
+    assert result.status_code == 409
+    updated = repo.get(task.task_id)
+    assert updated.status == TaskStatus.FAILED
+    assert updated.actions[0].approval_request.status == ApprovalStatus.EXPIRED
+    assert repo.list_audit(task.task_id)[-1].event_type == "APPROVAL_EXPIRED"

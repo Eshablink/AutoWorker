@@ -88,9 +88,18 @@ def test_side_effecting_action_requires_idempotency_key(sample_task):
         step_number=1,
         tool_id="execute_refund",
         is_side_effecting=True,
-        idempotency_key="",
+        idempotency_key=None,
         decision_summary="Execute refund in Stripe",
+        policy_decision=PolicyDecision(
+            task_id=sample_task.task_id,
+            action_id=uuid4(),
+            tool_id="execute_refund",
+            outcome=PolicyOutcome.ALLOW,
+            risk_level=ToolRisk.LOW,
+            reason="Allowed for test.",
+        ),
     )
+    action.policy_decision = action.policy_decision.model_copy(update={"action_id": action.action_id})
     sample_task.actions = [action]
     task, _ = TaskStateMachine.transition(sample_task, TaskStatus.PLANNING, "SYSTEM")
     task, _ = TaskStateMachine.transition(task, TaskStatus.READY, "SYSTEM")
@@ -204,4 +213,40 @@ def test_running_transition_rejects_denied_policy(sample_task):
     sample_task.actions = [action]
     task = _ready(sample_task)
     with pytest.raises(InvariantViolationError, match="denied execution"):
+        TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")
+
+
+def test_running_transition_rejects_action_without_policy_decision(sample_task):
+    action = TaskAction(
+        task_id=sample_task.task_id,
+        step_number=1,
+        tool_id="browser_click",
+        decision_summary="Click button",
+    )
+    sample_task.actions = [action]
+    task = _ready(sample_task)
+    with pytest.raises(InvariantViolationError, match="without a PolicyDecision"):
+        TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")
+
+
+def test_expired_approval_cannot_resume_task(sample_task):
+    from datetime import datetime, timedelta, timezone
+
+    action, policy = _high_risk_action(sample_task)
+    action.approval_request = ApprovalRequest(
+        task_id=sample_task.task_id,
+        action_id=action.action_id,
+        policy_decision_id=policy.decision_id,
+        status=ApprovalStatus.APPROVED,
+        requested_action_name="Execute Refund",
+        tool_id="execute_refund",
+        payload_summary={"amount": 1000},
+        risk_level=ToolRisk.HIGH,
+        reason_required="High value transaction",
+        approver_id="manager",
+        expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    sample_task.actions = [action]
+    task = _ready(sample_task)
+    with pytest.raises(InvariantViolationError, match="has expired"):
         TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")

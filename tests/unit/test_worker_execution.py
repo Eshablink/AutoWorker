@@ -30,6 +30,24 @@ def test_worker_executes_pending_action():
     assert result.output["ok"] is True
     assert action.status == ActionStatus.COMPLETED
     assert action.tool_output == {"ok": True, "tool": "browser_click"}
+    assert action.started_at is not None
+    assert action.completed_at is not None
+    assert action.completed_at >= action.started_at
+
+
+class FailingExecutor:
+    def execute(self, action):
+        raise RuntimeError("tool exploded")
+
+
+def test_worker_marks_failed_execution():
+    action = make_action()
+    with pytest.raises(RuntimeError, match="tool exploded"):
+        ExecutionWorker(FailingExecutor()).execute_action(action)
+    assert action.status == ActionStatus.FAILED
+    assert action.error_message == "tool exploded"
+    assert action.started_at is not None
+    assert action.completed_at is not None
 
 
 def test_worker_rejects_terminal_action():

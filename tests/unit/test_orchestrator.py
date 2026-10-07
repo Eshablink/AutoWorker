@@ -92,6 +92,28 @@ def test_orchestrator_requires_actions():
         orchestrator.prepare(task)
 
 
+def test_orchestrator_rejects_verification_before_action_completes():
+    registry = ToolRegistry([
+        ToolDefinition(
+            tool_id="safe_tool",
+            name="Safe",
+            description="Safe test tool",
+            input_schema={},
+            output_schema={},
+        )
+    ])
+    orchestrator = TaskOrchestrator(
+        registry,
+        PolicyEngine(registry),
+        ExecutionWorker(FakeExecutor()),
+    )
+    task = make_task()
+    orchestrator.prepare(task)
+
+    with pytest.raises(ValueError, match="must be COMPLETED"):
+        orchestrator.verify_current(task, checks=[VerificationCheck("noop", lambda action: (True, {}))])
+
+
 def test_orchestrator_verifies_and_completes():
     registry = ToolRegistry([
         ToolDefinition(

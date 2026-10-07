@@ -42,12 +42,14 @@ class PolicyEngine:
         evaluated_rules = [rule.rule_id for rule in self.rules]
 
         risk = tool.risk_level
+        # The registered tool is authoritative for side-effect classification.
+        action.is_side_effecting = tool.is_side_effecting
 
         if risk in {ToolRisk.HIGH, ToolRisk.CRITICAL}:
             outcome = PolicyOutcome.REQUIRE_APPROVAL
             reason = f"Tool risk level is {risk.value}; explicit human approval is required."
 
-        if tool.is_side_effecting and tool.requires_idempotency_key:
+        if tool.is_side_effecting:
             if not action.idempotency_key or not action.idempotency_key.strip():
                 outcome = PolicyOutcome.DENY
                 reason = "Side-effecting tool requires a non-empty idempotency key."

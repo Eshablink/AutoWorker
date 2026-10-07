@@ -1,6 +1,6 @@
 import { FormEvent, StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { createTask, listTasks, TaskSummary } from "./api";
+import { createTask, listTaskEvents, listTasks, TaskEvent, TaskStatus, TaskSummary } from "./api";
 
 const stages = [
   ["01", "Planning", "Turning the goal into safe executable actions."],
@@ -9,16 +9,41 @@ const stages = [
   ["04", "Verification", "Proving the result before completion."],
 ];
 
-const demoTimeline = [
-  "Task created",
-  "Policy evaluated",
-  "Worker ready",
-  "Browser/document work",
-  "Verification pending",
+const ACTIVE_STATUSES: TaskStatus[] = [
+  "RUNNING",
+  "PLANNING",
+  "VERIFYING",
+  "RECOVERING",
+  "WAITING_APPROVAL",
 ];
+
+const PROGRESS_BY_STATUS: Record<TaskStatus, number> = {
+  CREATED: 8,
+  PLANNING: 25,
+  READY: 35,
+  RUNNING: 60,
+  WAITING_APPROVAL: 48,
+  RECOVERING: 68,
+  VERIFYING: 84,
+  COMPLETED: 100,
+  FAILED: 100,
+  CANCELLED: 100,
+};
+
+function selectActiveTask(tasks: TaskSummary[]): TaskSummary | undefined {
+  return tasks.find((task) => ACTIVE_STATUSES.includes(task.status)) ?? tasks[0];
+}
+
+function formatEventType(eventType: string): string {
+  return eventType
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
 function App() {
   const [tasks, setTasks] = useState<TaskSummary[]>([]);
+  const [events, setEvents] = useState<TaskEvent[]>([]);
   const [goal, setGoal] = useState("");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -27,7 +52,14 @@ function App() {
   async function refresh() {
     try {
       setError(null);
-      setTasks(await listTasks());
+      const nextTasks = await listTasks();
+      setTasks(nextTasks);
+      const activeTask = selectActiveTask(nextTasks);
+      if (activeTask) {
+        setEvents(await listTaskEvents(activeTask.task_id));
+      } else {
+        setEvents([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to reach AutoWorker API.");
     } finally {
@@ -58,19 +90,16 @@ function App() {
     }
   }
 
-  const active = tasks.find((task) =>
-    ["RUNNING", "PLANNING", "VERIFYING", "RECOVERING", "WAITING_APPROVAL"].includes(task.status),
-  ) ?? tasks[0];
-
+  const active = selectActiveTask(tasks);
   const statusLabel = active?.status?.replaceAll("_", " ") ?? "READY";
-  const progress = active?.status === "VERIFYING" ? "78%" : active?.status === "COMPLETED" ? "100%" : "58%";
+  const progress = active ? PROGRESS_BY_STATUS[active.status] : 0;
 
   return (
     <main className="shell">
       <aside className="rail">
         <div className="brand"><span>AW</span><div><b>AutoWorker</b><small>Autonomous operations</small></div></div>
         <nav><a className="active">Overview</a><a>Tasks</a><a>Approvals</a><a>Evidence</a><a>Workers</a></nav>
-        <div className="worker"><i />Worker cluster <strong>Online</strong></div>
+        <div className="worker"><i />Control plane <strong>Online</strong></div>
       </aside>
 
       <section className="content">
@@ -86,14 +115,14 @@ function App() {
           </form>
         </header>
 
-        {error && <div className="errorBanner">{error}</div>}
+        {error && <div className="errorBanner" role="alert">{error}</div>}
 
         <section className="hero">
           <div>
-            <div className="live"><i /> LIVE WORKER</div>
-            <h2>{active?.goal ?? "Invoice operations"}</h2>
-            <p>{active ? `Task ${active.task_id.slice(0, 8)} · current state: ${statusLabel}` : "Create a task to watch AutoWorker move from intent to verified outcome."}</p>
-            <div className="progress"><span style={{ width: progress }} /></div>
+            <div className="live"><i /> CONTROL PLANE</div>
+            <h2>{active?.goal ?? "Ready for your first task"}</h2>
+            <p>{active ? `Task ${active.task_id.slice(0, 8)} · current state: ${statusLabel}` : "Create a task to inspect its lifecycle and persisted audit trail."}</p>
+            <div className="progress" aria-label={`Lifecycle progress ${progress}%`}><span style={{ width: `${progress}%` }} /></div>
             <small>{active ? `Version ${active.version} · ${statusLabel}` : "Waiting for first task"}</small>
           </div>
           <div className="orb"><div>AI<br /><b>WORKER</b></div></div>
@@ -105,9 +134,16 @@ function App() {
 
         <section className="lower">
           <div className="panel">
-            <div className="panelHead"><h2>Execution timeline</h2><span>{loading ? "SYNCING" : "LIVE"}</span></div>
-            {demoTimeline.map((event, index) => (
-              <div className="event" key={event}><i className={index === 4 ? "pulse" : ""} /><div><b>{event}</b><small>{index < 3 ? "Completed" : "In progress"} · live view</small></div></div>
+            <div className="panelHead"><h2>Execution timeline</h2><span>{loading ? "SYNCING" : `${events.length} EVENTS`}</span></div>
+            {events.length === 0 && <p>{active ? "No persisted events yet for this task." : "Create a task to start the live audit trail."}</p>}
+            {events.slice().reverse().map((event) => (
+              <div className="event" key={event.event_id}>
+                <i className={event.event_type === "VERIFICATION_COMPLETED" ? "pulse" : ""} />
+                <div>
+                  <b>{formatEventType(event.event_type)}</b>
+                  <small>{event.actor} · {new Date(event.timestamp).toLocaleTimeString()}</small>
+                </div>
+              </div>
             ))}
           </div>
           <div className="panel approval">

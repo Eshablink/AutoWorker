@@ -17,3 +17,15 @@ def test_health_returns_request_correlation_id():
 def test_health_generates_request_correlation_id():
     response = TestClient(app).get("/health")
     assert response.headers["X-Request-ID"]
+
+
+def test_cors_allows_configured_local_frontend():
+    response = TestClient(app).options(
+        "/health",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"

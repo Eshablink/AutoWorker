@@ -3,6 +3,7 @@ from uuid import uuid4
 from pydantic import ValidationError
 
 from packages.domain.models import (
+    ApprovalRequest,
     AuditEvent,
     EvidenceReference,
     PolicyDecision,
@@ -95,3 +96,69 @@ def test_audit_event_immutability():
     )
     with pytest.raises(ValidationError):
         event.actor = "HACKER"
+
+
+def test_short_non_whitespace_goal_is_rejected():
+    with pytest.raises(ValidationError, match="at least 5 non-whitespace characters"):
+        Task(goal="    a")
+
+
+def test_whitespace_idempotency_key_is_rejected():
+    with pytest.raises(ValidationError, match="idempotency_key"):
+        TaskAction(
+            task_id=uuid4(),
+            step_number=1,
+            tool_id="browser_click",
+            decision_summary="Click button",
+            idempotency_key="   ",
+        )
+
+
+def test_policy_version_cannot_be_blank():
+    with pytest.raises(ValidationError, match="policy_version"):
+        PolicyDecision(
+            task_id=uuid4(),
+            action_id=uuid4(),
+            tool_id="test_tool",
+            outcome=PolicyOutcome.ALLOW,
+            risk_level=ToolRisk.LOW,
+            reason="Allowed for testing",
+            policy_version="   ",
+        )
+
+
+def test_approval_request_expired_property():
+    from datetime import datetime, timedelta, timezone
+    from packages.domain.models import ApprovalRequest, ApprovalStatus
+
+    approval = ApprovalRequest(
+        task_id=uuid4(),
+        action_id=uuid4(),
+        policy_decision_id=uuid4(),
+        status=ApprovalStatus.PENDING,
+        requested_action_name="Approve invoice",
+        tool_id="erp_submit",
+        payload_summary={},
+        risk_level=ToolRisk.HIGH,
+        reason_required="Financial write",
+        expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    assert approval.expired is True
+
+
+def test_approval_expiry_naive_datetime_is_normalized_to_utc():
+    from datetime import datetime
+
+    approval = ApprovalRequest(
+        task_id=uuid4(),
+        action_id=uuid4(),
+        policy_decision_id=uuid4(),
+        requested_action_name="Approve invoice",
+        tool_id="erp_submit",
+        payload_summary={},
+        risk_level=ToolRisk.HIGH,
+        reason_required="Financial write",
+        expires_at=datetime(2030, 1, 1, 12, 0, 0),
+    )
+    assert approval.expires_at.tzinfo is not None
+    assert approval.expires_at.utcoffset().total_seconds() == 0

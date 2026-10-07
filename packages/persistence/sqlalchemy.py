@@ -4,9 +4,10 @@ Keeps database concerns outside the domain. The concrete schema intentionally
 stores the complete Task aggregate as JSON until normalized projections are needed.
 """
 
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import JSON, Integer, String, select
+from sqlalchemy import JSON, DateTime, Integer, String, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 from packages.domain.models import AuditEvent, Task
@@ -24,6 +25,7 @@ class TaskRecord(Base):
     task_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class AuditRecord(Base):
@@ -47,7 +49,9 @@ class SqlAlchemyTaskRepository:
     def list_tasks(self, *, limit: int = 50) -> list[Task]:
         if limit < 1:
             raise ValueError("limit must be at least 1.")
-        rows = self.session.execute(select(TaskRecord).limit(limit)).scalars().all()
+        rows = self.session.execute(
+            select(TaskRecord).order_by(TaskRecord.created_at.desc()).limit(limit)
+        ).scalars().all()
         return [task_from_record(row.payload) for row in rows]
 
     def create(self, task: Task) -> Task:
@@ -58,6 +62,7 @@ class SqlAlchemyTaskRepository:
                 task_id=str(task.task_id),
                 version=task.version,
                 payload=task_to_record(task),
+                created_at=task.created_at,
             )
         )
         return task

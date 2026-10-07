@@ -3,9 +3,9 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from packages.domain.models import Task, TaskStatus
-from packages.domain.repository import TaskNotFoundError
 from apps.api.database import get_task_repository
+from packages.domain.models import AuditEvent, Task, TaskStatus
+from packages.domain.repository import TaskNotFoundError
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -20,8 +20,6 @@ class TaskResponse(BaseModel):
     goal: str
     status: TaskStatus
     version: int
-
-
 
 
 @router.get("", response_model=list[TaskResponse])
@@ -42,9 +40,20 @@ def list_tasks(
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(request: CreateTaskRequest, repository: SqlAlchemyTaskRepository = Depends(get_task_repository)) -> TaskResponse:
+def create_task(
+    request: CreateTaskRequest,
+    repository: SqlAlchemyTaskRepository = Depends(get_task_repository),
+) -> TaskResponse:
     task = Task(task_id=uuid4(), goal=request.goal)
     repository.create(task)
+    repository.append_audit(
+        AuditEvent(
+            task_id=task.task_id,
+            event_type="TASK_CREATED",
+            actor="API",
+            details={"goal_length": len(task.goal)},
+        )
+    )
     return TaskResponse(
         task_id=task.task_id,
         goal=task.goal,
@@ -54,7 +63,10 @@ def create_task(request: CreateTaskRequest, repository: SqlAlchemyTaskRepository
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_task(task_id: UUID, repository: SqlAlchemyTaskRepository = Depends(get_task_repository)) -> TaskResponse:
+def get_task(
+    task_id: UUID,
+    repository: SqlAlchemyTaskRepository = Depends(get_task_repository),
+) -> TaskResponse:
     try:
         task = repository.get(task_id)
     except TaskNotFoundError as exc:

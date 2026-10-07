@@ -5,6 +5,7 @@ This layer owns execution orchestration, not tool-specific automation.
 """
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Mapping, Protocol
 
 from packages.domain.models import ActionStatus, PolicyOutcome, TaskAction, ToolRisk
@@ -65,7 +66,15 @@ class ExecutionWorker:
             or policy.risk_level in {ToolRisk.HIGH, ToolRisk.CRITICAL}
         ):
             approval = action.approval_request
-            if approval is None or approval.status.value != "APPROVED":
+            if approval is None:
+                raise PermissionError(
+                    f"Action {action.action_id} cannot execute without approved HITL authorization."
+                )
+            if approval.expired:
+                raise PermissionError(
+                    f"Action {action.action_id} cannot execute because the HITL authorization has expired."
+                )
+            if approval.status.value != "APPROVED":
                 raise PermissionError(
                     f"Action {action.action_id} cannot execute without approved HITL authorization."
                 )
@@ -75,18 +84,33 @@ class ExecutionWorker:
                 f"Action {action.action_id} cannot execute without an idempotency key."
             )
 
-        if action.is_side_effecting and action.idempotency_key:
-            existing = self.idempotency_store.get(action.idempotency_key)
-            if existing is not None:
-                action.tool_output = dict(existing.output)
-                action.observation = existing.observation
-                action.status = ActionStatus.COMPLETED
-                return existing
+        now = datetime.now(timezone.utc)
+        action.started_at = now
+        action.completed_at = None
+        action.error_message = None
+        action.status = ActionStatus.RUNNING
 
-        result = self.executor.execute(action)
+        try:
+            if action.is_side_effecting and action.idempotency_key:
+                existing = self.idempotency_store.get(action.idempotency_key)
+                if existing is not None:
+                    action.tool_output = dict(existing.output)
+                    action.observation = existing.observation
+                    action.status = ActionStatus.COMPLETED
+                    action.completed_at = datetime.now(timezone.utc)
+                    return existing
+
+            result = self.executor.execute(action)
+        except Exception as exc:
+            action.error_message = str(exc)
+            action.status = ActionStatus.FAILED
+            action.completed_at = datetime.now(timezone.utc)
+            raise
+
         if action.is_side_effecting and action.idempotency_key:
             self.idempotency_store.put(action.idempotency_key, result)
         action.tool_output = dict(result.output)
         action.observation = result.observation
         action.status = ActionStatus.COMPLETED
+        action.completed_at = datetime.now(timezone.utc)
         return result

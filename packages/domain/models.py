@@ -115,7 +115,7 @@ class PolicyDecision(BaseModel):
     evaluated_rules: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=default_utc_now)
 
-    @field_validator("tool_id", "reason")
+    @field_validator("tool_id", "reason", "policy_version")
     @classmethod
     def validate_strings(cls, v: str, info) -> str:
         if not v or not v.strip():
@@ -147,6 +147,20 @@ class ApprovalRequest(BaseModel):
     approval_comment: Optional[str] = None
     created_at: datetime = Field(default_factory=default_utc_now)
     decided_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+
+    @field_validator("expires_at")
+    @classmethod
+    def normalize_expiry(cls, value: Optional[datetime]) -> Optional[datetime]:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+    @property
+    def expired(self) -> bool:
+        return self.expires_at is not None and datetime.now(timezone.utc) >= self.expires_at
 
     @field_validator("requested_action_name", "tool_id", "reason_required")
     @classmethod
@@ -227,6 +241,16 @@ class TaskAction(BaseModel):
             raise ValueError(f"TaskAction field '{info.field_name}' cannot be empty.")
         return v.strip()
 
+    @field_validator("idempotency_key")
+    @classmethod
+    def validate_idempotency_key(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        normalized = v.strip()
+        if not normalized:
+            raise ValueError("idempotency_key cannot be empty or whitespace.")
+        return normalized
+
     @model_validator(mode="after")
     def validate_retries(self) -> "TaskAction":
         if self.retry_count > self.max_retries:
@@ -250,6 +274,7 @@ class Task(BaseModel):
     @field_validator("goal")
     @classmethod
     def validate_goal_not_blank(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Task goal cannot be empty or whitespace only.")
-        return v.strip()
+        normalized = v.strip()
+        if len(normalized) < 5:
+            raise ValueError("Task goal must contain at least 5 non-whitespace characters.")
+        return normalized
