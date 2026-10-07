@@ -101,3 +101,23 @@ def test_two_workers_cannot_claim_same_durable_idempotency_key(session_factory):
     assert first_store.claim("shared-write-1") is None
     with pytest.raises(IdempotencyInProgressError):
         second_store.claim("shared-write-1")
+
+
+def test_worker_loop_stops_cleanly_after_callback_requests_stop():
+    from packages.worker.loop import WorkerLoop
+    from packages.worker.runtime import WorkerRunResult
+
+    stop_event = __import__("threading").Event()
+    calls = []
+    result = WorkerRunResult(uuid4(), __import__("packages.domain.models", fromlist=["TaskStatus"]).TaskStatus.COMPLETED, True, "test")
+
+    class FakeRuntime:
+        def run_once(self):
+            return result
+
+    WorkerLoop(FakeRuntime(), poll_interval_seconds=0.01).run_forever(
+        stop_event,
+        on_result=lambda item: (calls.append(item), stop_event.set()),
+    )
+
+    assert calls == [result]
