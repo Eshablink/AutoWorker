@@ -90,7 +90,16 @@ def test_side_effecting_action_requires_idempotency_key(sample_task):
         is_side_effecting=True,
         idempotency_key=None,
         decision_summary="Execute refund in Stripe",
+        policy_decision=PolicyDecision(
+            task_id=sample_task.task_id,
+            action_id=uuid4(),
+            tool_id="execute_refund",
+            outcome=PolicyOutcome.ALLOW,
+            risk_level=ToolRisk.LOW,
+            reason="Allowed for test.",
+        ),
     )
+    action.policy_decision = action.policy_decision.model_copy(update={"action_id": action.action_id})
     sample_task.actions = [action]
     task, _ = TaskStateMachine.transition(sample_task, TaskStatus.PLANNING, "SYSTEM")
     task, _ = TaskStateMachine.transition(task, TaskStatus.READY, "SYSTEM")
