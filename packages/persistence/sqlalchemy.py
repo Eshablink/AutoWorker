@@ -1,8 +1,4 @@
-"""SQLAlchemy persistence adapter skeleton.
-
-Keeps database concerns outside the domain. The concrete schema intentionally
-stores the complete Task aggregate as JSON until normalized projections are needed.
-"""
+"""SQLAlchemy persistence adapter with normalized operational projections."""
 
 from datetime import datetime
 from uuid import UUID
@@ -36,6 +32,21 @@ class AuditRecord(Base):
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
 
 
+class ApprovalRecord(Base):
+    __tablename__ = "approval_requests"
+
+    approval_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    task_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    action_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    policy_decision_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    tool_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(16), nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class SqlAlchemyTaskRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -65,6 +76,7 @@ class SqlAlchemyTaskRepository:
                 created_at=task.created_at,
             )
         )
+        self._sync_approval_projection(task)
         return task
 
     def save(self, task: Task, audit_event: AuditEvent, *, expected_version: int) -> Task:
@@ -87,15 +99,36 @@ class SqlAlchemyTaskRepository:
                 payload=audit_event.model_dump(mode="json"),
             )
         )
+        self._sync_approval_projection(task)
         return task
 
+    def _sync_approval_projection(self, task: Task) -> None:
+        for action in task.actions:
+            approval = action.approval_request
+            if approval is None:
+                continue
+
+            approval_id = str(approval.approval_id)
+            row = self.session.get(ApprovalRecord, approval_id)
+            if row is None:
+                row = ApprovalRecord(approval_id=approval_id)
+                self.session.add(row)
+
+            row.task_id = str(approval.task_id)
+            row.action_id = str(approval.action_id)
+            row.policy_decision_id = str(approval.policy_decision_id)
+            row.status = approval.status.value
+            row.tool_id = approval.tool_id
+            row.risk_level = approval.risk_level.value
+            row.expires_at = approval.expires_at
+            row.created_at = approval.created_at
+            row.decided_at = approval.decided_at
+
     def find_by_approval_id(self, approval_id: UUID) -> Task:
-        rows = self.session.execute(select(TaskRecord)).scalars().all()
-        for row in rows:
-            task = task_from_record(row.payload)
-            if any(action.approval_request and action.approval_request.approval_id == approval_id for action in task.actions):
-                return task
-        raise TaskNotFoundError(str(approval_id))
+        row = self.session.get(ApprovalRecord, str(approval_id))
+        if row is None:
+            raise TaskNotFoundError(str(approval_id))
+        return self.get(UUID(row.task_id))
 
     def list_audit(self, task_id: UUID) -> list[AuditEvent]:
         rows = self.session.execute(
