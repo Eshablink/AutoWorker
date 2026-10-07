@@ -15,6 +15,17 @@ class CreateTaskRequest(BaseModel):
     goal: str = Field(min_length=5, max_length=10_000)
 
 
+
+class TaskDetailResponse(BaseModel):
+    task_id: UUID
+    goal: str
+    status: TaskStatus
+    version: int
+    current_step_index: int
+    error_message: str | None
+    actions: list[dict]
+    verification_result: dict | None
+
 class TaskResponse(BaseModel):
     task_id: UUID
     goal: str
@@ -76,4 +87,29 @@ def get_task(
         goal=task.goal,
         status=task.status,
         version=task.version,
+    )
+
+@router.get("/{task_id}/detail", response_model=TaskDetailResponse)
+def get_task_detail(
+    task_id: UUID,
+    repository: SqlAlchemyTaskRepository = Depends(get_task_repository),
+) -> TaskDetailResponse:
+    try:
+        task = repository.get(task_id)
+    except TaskNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Task not found.") from exc
+
+    return TaskDetailResponse(
+        task_id=task.task_id,
+        goal=task.goal,
+        status=task.status,
+        version=task.version,
+        current_step_index=task.current_step_index,
+        error_message=task.error_message,
+        actions=[action.model_dump(mode="json") for action in task.actions],
+        verification_result=(
+            task.verification_result.model_dump(mode="json")
+            if task.verification_result
+            else None
+        ),
     )
