@@ -40,3 +40,26 @@ def test_non_running_task_is_not_recovered():
     task = Task(goal="Process an invoice")
     with pytest.raises(ValueError):
         RecoveryCoordinator().recover(task)
+
+
+def test_recovery_requeues_failed_action_after_execution_error():
+    from packages.domain.models import Task, TaskAction
+
+    task = Task(goal="Recover a failed safe operation", status=TaskStatus.RUNNING)
+    task.actions = [
+        TaskAction(
+            task_id=task.task_id,
+            step_number=1,
+            tool_id="safe_tool",
+            decision_summary="Execute safe tool",
+            status=ActionStatus.FAILED,
+            error_message="temporary tool failure",
+        )
+    ]
+
+    recovered = RecoveryCoordinator().recover(task)
+
+    assert recovered.status == TaskStatus.RECOVERING
+    assert recovered.actions[0].status == ActionStatus.PENDING
+    assert recovered.actions[0].retry_count == 1
+    assert recovered.actions[0].error_message is None
