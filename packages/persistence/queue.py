@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -141,9 +141,9 @@ class SqlAlchemyTaskQueue:
     def queue_depth(self) -> int:
         with self.session_factory() as session:
             return int(
-                session.execute(
-                    select(DispatchQueueRecord.task_id).where(
+                session.scalar(
+                    select(func.count()).select_from(DispatchQueueRecord).where(
                         DispatchQueueRecord.state == self.READY
                     )
-                ).scalars().count()
+                ) or 0
             )
