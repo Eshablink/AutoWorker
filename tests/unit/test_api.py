@@ -112,3 +112,16 @@ def test_operator_approval_inbox_lists_pending_actions(monkeypatch):
     body = response.json()
     assert body[0]["approval_id"] == str(action.approval_request.approval_id)
     assert body[0]["risk_level"] == "HIGH"
+
+
+
+def test_metrics_endpoint_exposes_autoworker_metrics():
+    response = TestClient(app).get("/metrics")
+    assert response.status_code == 200
+    assert "autoworker_http_requests_total" in response.text
+
+
+def test_http_response_includes_timing_header():
+    response = TestClient(app).get("/health")
+    assert response.status_code == 200
+    assert float(response.headers["X-Response-Time-Ms"]) >= 0
