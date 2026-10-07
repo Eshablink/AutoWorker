@@ -8,9 +8,18 @@ As of 2026-10-07, AutoWorker has a free-tier Render deployment path validated as
 |---|---|---|
 | React web console | ✅ Live | https://autoworker-web-release.onrender.com |
 | Web production build | ✅ Verified | TypeScript + Vite build succeeds on Render |
-| FastAPI service | ⚠️ Blocked | https://autoworker-api.onrender.com |
-| PostgreSQL | ⚠️ Not provisioned | A dedicated database is required |
-| Redis | ⚠️ Not provisioned | A dedicated broker is required |
+| FastAPI demo API | ✅ Live | https://autoworker-api-demo.onrender.com |
+| Demo storage | ✅ Live | Isolated SQLite runtime; no Redis dependency |
+| PostgreSQL production | ⚠️ Not provisioned | A dedicated database is required |
+| Redis production | ⚠️ Not provisioned | A dedicated broker is required |
+
+## Demo API vs production API
+
+The no-charge deployment now has a separate AutoWorker demo API. It runs with `AUTOWORKER_ENV=development`, isolated SQLite storage, and no Redis dependency. The frontend is explicitly built against that API instead of relying on a `/api` path on the Render static-site host.
+
+This makes the public operator console functional for staging/demo use without reusing another project's database or broker.
+
+The demo runtime is **not** the production architecture and must not be described as durable PostgreSQL/Redis production infrastructure.
 
 ## Why the API is not marked production-live
 
@@ -56,5 +65,7 @@ This deployment is intentionally **no-charge**. Paid Render infrastructure must 
 ## Current release classification
 
 **Web staging/live preview:** ✅
+
+**Demo API:** ✅
 
 **Full production system:** 🚧 Blocked by isolated PostgreSQL + Redis availability on the free tier.
