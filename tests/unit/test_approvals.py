@@ -96,15 +96,13 @@ def test_expired_approval_is_failed_and_not_accepted():
     approval.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
     repo.create(task)
 
-    import pytest
+    result = decide_approval(
+        approval.approval_id,
+        ApprovalDecision(status=ApprovalStatus.APPROVED, approver_id="manager"),
+        repo,
+    )
 
-    with pytest.raises(Exception, match="expired"):
-        decide_approval(
-            approval.approval_id,
-            ApprovalDecision(status=ApprovalStatus.APPROVED, approver_id="manager"),
-            repo,
-        )
-
+    assert result.status_code == 409
     updated = repo.get(task.task_id)
     assert updated.status == TaskStatus.FAILED
     assert updated.actions[0].approval_request.status == ApprovalStatus.EXPIRED
