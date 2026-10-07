@@ -4,6 +4,7 @@ Keeps database concerns outside the domain. The concrete schema intentionally
 stores the complete Task aggregate as JSON until normalized projections are needed.
 """
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import JSON, DateTime, Integer, String, select
@@ -24,7 +25,7 @@ class TaskRecord(Base):
     task_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class AuditRecord(Base):
