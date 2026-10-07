@@ -129,3 +129,41 @@ def test_payload_aware_rule_can_deny_action_and_records_policy_version():
     assert decision.outcome == PolicyOutcome.DENY
     assert decision.policy_version == "2026.1"
     assert "refund-maximum" in decision.evaluated_rules
+
+
+def test_side_effect_classification_comes_from_tool_definition():
+    task = make_task()
+    registry = ToolRegistry([
+        ToolDefinition(
+            tool_id="send_email",
+            name="Send Email",
+            description="Send an email.",
+            input_schema={},
+            output_schema={},
+            is_side_effecting=True,
+            requires_idempotency_key=False,
+        )
+    ])
+    action = make_action(task, "send_email")
+    decision = PolicyEngine(registry).evaluate(task, action)
+    assert action.is_side_effecting is True
+    assert decision.outcome == PolicyOutcome.DENY
+    assert "idempotency" in decision.reason.lower()
+
+
+def test_side_effecting_tool_with_key_is_allowed_when_low_risk():
+    task = make_task()
+    registry = ToolRegistry([
+        ToolDefinition(
+            tool_id="send_email",
+            name="Send Email",
+            description="Send an email.",
+            input_schema={},
+            output_schema={},
+            is_side_effecting=True,
+        )
+    ])
+    action = make_action(task, "send_email", key="email-123")
+    decision = PolicyEngine(registry).evaluate(task, action)
+    assert action.is_side_effecting is True
+    assert decision.outcome == PolicyOutcome.ALLOW
