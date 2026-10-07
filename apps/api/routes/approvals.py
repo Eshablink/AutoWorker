@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from packages.domain.models import ActionStatus, ApprovalStatus, AuditEvent, TaskStatus
@@ -63,6 +64,7 @@ def decide_approval(
             reason=task.error_message,
         )
         repository.save(task, audit_event=state_audit, expected_version=previous_version)
+        action.status = ActionStatus.FAILED
         repository.append_audit(
             AuditEvent(
                 task_id=task.task_id,
@@ -72,7 +74,7 @@ def decide_approval(
                 details={"approval_id": str(approval_id)},
             )
         )
-        raise HTTPException(status_code=409, detail="Approval request has expired.")
+        return JSONResponse(status_code=409, content={"detail": "Approval request has expired."})
 
     previous_version = task.version
     approval.status = decision.status
