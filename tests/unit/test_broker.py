@@ -19,6 +19,9 @@ class FakeRedis:
         self.entries.append((message_id, fields))
         return message_id
 
+    def xautoclaim(self, stream, group, consumer, min_idle_time, start_id, count):
+        return ["0-0", []]
+
     def xreadgroup(self, group, worker, streams, count, block):
         if not self.entries:
             return []
@@ -68,3 +71,13 @@ def test_broker_backed_queue_updates_durable_queue_then_publishes():
 
     assert queue.durable_queue.enqueued == [task_id]
     assert len(redis.entries) == 1
+
+
+def test_stale_pending_message_is_reclaimed():
+    redis = FakeRedis()
+    broker = RedisStreamsTaskBroker(redis)
+    task_id = uuid4()
+    broker.publish(task_id)
+    message = broker.consume("worker-a")
+    assert message is not None
+    broker.acknowledge(message)
