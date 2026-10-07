@@ -24,6 +24,7 @@ class EventType(str, Enum):
 class TaskEvent(BaseModel):
     event_id: UUID = Field(default_factory=uuid4)
     task_id: UUID
+    action_id: UUID | None = None
     event_type: EventType
     payload: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
