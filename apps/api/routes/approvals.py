@@ -9,6 +9,7 @@ from packages.domain.models import ActionStatus, ApprovalStatus, AuditEvent, Tas
 from packages.domain.repository import TaskNotFoundError
 from packages.domain.state import TaskStateMachine
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
+from packages.observability.metrics import APPROVAL_DECISIONS
 from apps.api.database import get_task_repository
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
@@ -114,6 +115,7 @@ def decide_approval(
         )
         repository.save(task, audit_event=state_audit, expected_version=previous_version)
         action.status = ActionStatus.FAILED
+        APPROVAL_DECISIONS.labels("EXPIRED").inc()
         repository.append_audit(
             AuditEvent(
                 task_id=task.task_id,
@@ -149,6 +151,7 @@ def decide_approval(
         )
 
     repository.save(task, audit_event=state_audit, expected_version=previous_version)
+    APPROVAL_DECISIONS.labels(decision.status.value).inc()
     repository.append_audit(
         AuditEvent(
             task_id=task.task_id,
