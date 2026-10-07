@@ -45,8 +45,15 @@ def upgrade() -> None:
             )
         )
 
-    op.alter_column("tasks", "created_at", nullable=False)
-    op.alter_column("tasks", "created_at", server_default=None)
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        # SQLite cannot alter an existing column's nullability in place.
+        # The server default above guarantees existing/new rows have a value.
+        pass
+    else:
+        op.alter_column("tasks", "created_at", nullable=False)
+        op.alter_column("tasks", "created_at", server_default=None)
+
     op.create_index("ix_tasks_created_at", "tasks", ["created_at"])
 
 
