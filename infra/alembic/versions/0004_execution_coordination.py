@@ -34,7 +34,7 @@ def upgrade() -> None:
         sa.Column("worker_id", sa.String(length=255), nullable=False),
         sa.Column("lease_id", sa.String(length=36), nullable=False, unique=True),
         sa.Column("acquired_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False, index=True),
+        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("heartbeat_at", sa.DateTime(timezone=True), nullable=False),
     )
     op.create_index("ix_task_leases_worker_id", "task_leases", ["worker_id"])
