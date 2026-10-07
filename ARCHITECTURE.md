@@ -65,3 +65,7 @@ The API exposes Prometheus-compatible metrics, response timing headers, and stru
 ## External Worker Fleet
 
 Redis Streams can serve as the external delivery transport for the worker fleet. Consumer groups distribute task notifications across worker processes, and stale pending messages can be reclaimed after an idle threshold. The SQL dispatch queue remains authoritative for durable task state; database leases remain authoritative for single-worker ownership.
+
+## Production Security Boundary
+
+Task-control, audit-event, and approval routes require a bearer API token in production. Health, readiness, and metrics remain separately accessible for infrastructure probing. The web console supports the same token through a build-time `VITE_API_TOKEN` value.
