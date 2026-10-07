@@ -43,7 +43,7 @@ if settings.cors_origins:
         allow_origins=settings.cors_origins,
         allow_credentials=False,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "X-Request-ID"],
+        allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
     )
 
 app.include_router(tasks_router)
