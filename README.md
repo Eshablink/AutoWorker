@@ -4,7 +4,7 @@
 
 AutoWorker turns high-level operational goals into controlled, verifiable computer actions.
 
-> Status: Phase 4 — autonomous capability layer; foundation under active development.
+> Status: Phase 4 — autonomous capability layer; hardening pass active.
 
 ## Execution model
 
@@ -46,6 +46,6 @@ Install Python dependencies, run pytest, and run Ruff against packages, apps, an
 
 ## Safety guarantees
 
-No private chain-of-thought is persisted. Side-effecting actions require idempotency keys, high-risk operations require explicit HITL approval, terminal tasks cannot be mutated, and verification is required before completion.
+No private chain-of-thought is persisted. Side-effecting actions require idempotency keys, high-risk operations require explicit HITL approval, approval requests expire, terminal tasks cannot be mutated, and verification is required before completion.
 
 See PROJECT_BRIEF.md, ARCHITECTURE.md, DECISIONS.md, and PROGRESS.md.
