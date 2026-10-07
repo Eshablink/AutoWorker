@@ -436,20 +436,32 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) and [DECISIONS.md](DECISIONS.md) for deep
 
 ## 📌 Project status
 
-**Current phase:** Phase 4 — Autonomous capability layer
+**Status:** 🟢 Production-oriented engineering foundation complete · 🚧 Autonomous capability layer in progress
 
-The foundation is intentionally production-oriented, but the project remains under active development.
+AutoWorker already has a substantial production-oriented core: explicit task lifecycle control, deterministic policy enforcement, human approvals, durable persistence, worker execution/recovery boundaries, independent verification, audit/evidence handling, browser/ERP contracts, and an operations dashboard.
 
-### Current engineering focus
+### What is solid today
 
-1. Durable cross-process idempotency
-2. Durable event outbox / operational event consistency
-3. Real worker dispatch loop and queue integration
-4. Rich approval, evidence, and task-detail UX
-5. PostgreSQL + controlled-browser end-to-end workflow coverage
-6. Deployment hardening and production health verification
+| Capability | Status |
+|---|---|
+| Domain & safety invariants | ✅ Implemented |
+| PostgreSQL persistence & migrations | ✅ Implemented |
+| Worker execution + recovery foundation | ✅ Implemented |
+| HITL approvals + expiry | ✅ Implemented |
+| Browser / document / ERP boundaries | ✅ Implemented |
+| Verification + audit/evidence | ✅ Implemented |
+| React + TypeScript operations console | ✅ Implemented |
+| Automated CI + migration regression checks | ✅ Implemented |
 
-The repository deliberately documents remaining gaps instead of presenting a prototype as a completed production worker.
+### What we are building next
+
+1. **Durable cross-process idempotency** — make side-effect protection reliable across multiple worker processes.
+2. **Durable event outbox** — make operational events resilient and consistently delivered.
+3. **Multi-worker dispatch** — move from the reference runtime toward real queued/distributed execution.
+4. **Broader end-to-end computer-use coverage** — exercise controlled browser workflows against PostgreSQL-backed state.
+5. **Production deployment + observability** — harden runtime configuration, health checks, monitoring, and deployment operations.
+
+This is deliberate engineering scope, not a claim that every production concern is already solved.
 
 ---
 
