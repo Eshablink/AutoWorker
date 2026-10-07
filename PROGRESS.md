@@ -31,6 +31,7 @@ Phase 10 — Observability + broker hardening
 - Redis stream/group names, retention, reclaim threshold, and blocking interval are environment-configurable and covered by settings regression tests.
 - Observability regression coverage now verifies worker duration, queue depth, broker operations, and auth-failure metrics are exposed for scraping.
 - CI has continuously validated frontend builds and backend tests; the hardening branch is only considered merge-ready when its latest run is green.
+- Free-tier Render web deployment has been validated successfully.
 
 ## Current Hardening Review
 - Durable idempotency now uses atomic database-backed claim/complete semantics before side-effecting execution.
@@ -40,9 +41,18 @@ Phase 10 — Observability + broker hardening
 - Browser/document layers contain legacy compatibility modules that should be consolidated only after import usage is mapped.
 - Production deployment and isolated infrastructure verification remain before final release.
 
+## Deployment Status
+- **Web:** live on Render as a free static-site deployment.
+- **API:** not production-live because the free-tier workspace has no isolated PostgreSQL + Redis resources available for AutoWorker.
+- Existing PostgreSQL/Redis resources belong to other applications and are intentionally not reused.
+- No paid resources have been created.
+- The API migration failure without `DATABASE_URL` is an infrastructure configuration failure, not a reason to mark the application production-ready.
+- Full production status remains blocked until dedicated database and broker infrastructure can be provisioned and the release gate is verified end-to-end.
+
 ## Next
-- Deployment validation is the remaining release gate: use isolated AutoWorker infrastructure and verify API health/readiness, authentication, explicit CORS, migrations, Redis connectivity, worker execution, queue fallback, and observability end-to-end.
-- Do not mark the project production-live until the deployed system passes those checks.
+- Provision isolated PostgreSQL and Redis only if the no-charge constraint is explicitly changed.
+- Until then, use the Render web deployment as a staging/live preview and Docker Compose for the complete local integration stack.
+- Do not mark the project production-live until API health/readiness, authentication, explicit CORS, migrations, Redis connectivity, worker execution, queue fallback, and observability all pass on the deployed system.
 
 ## Rule
 Update this file after each meaningful milestone. Do not mark work complete until validated.
