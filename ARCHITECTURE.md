@@ -53,3 +53,11 @@ The execution layer now includes three persistence-backed coordination primitive
 1. **Idempotency claims** — a unique key is atomically claimed before a side-effecting operation. A completed result is reused; an in-progress claim is not blindly replayed.
 2. **Task leases** — workers acquire a database lease, renew it with heartbeats, and release it when processing ends. This supports multiple worker processes safely competing for tasks.
 3. **Event outbox** — operational events can be appended durably and retried until marked published. Event IDs provide a stable deduplication key for downstream consumers.
+
+## Dispatch & Observability
+
+### Task Dispatch Queue
+The persistent dispatch queue records task availability, attempts, claims, blocked approval states, completion, and stale-claim recovery. It is intentionally an execution hint; the database worker lease remains the concurrency authority.
+
+### Operational Telemetry
+The API exposes Prometheus-compatible metrics, response timing headers, and structured JSON request logs. HTTP metrics use normalized route templates to avoid high-cardinality path labels.
