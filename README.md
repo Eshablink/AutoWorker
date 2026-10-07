@@ -13,7 +13,7 @@
 [![PostgreSQL](https://img.shields.io/badge/Data-PostgreSQL%2017-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Playwright](https://img.shields.io/badge/Browser-Playwright-45BA63?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Repo Size](https://img.shields.io/github/repo-size/Eshablink/AutoWorker)](https://github.com/Eshablink/AutoWorker)
-[![Phase](https://img.shields.io/badge/phase-6%20operator%20%26%20E2E-6f42c1)](PROGRESS.md)
+[![Phase](https://img.shields.io/badge/phase-7%20dispatch%20%26%20observability-6f42c1)](PROGRESS.md)
 
 [**Architecture**](ARCHITECTURE.md) · [**Project Brief**](PROJECT_BRIEF.md) · [**Decisions**](DECISIONS.md) · [**Progress**](PROGRESS.md)
 
@@ -96,6 +96,7 @@ The model is useful, but it is not the final authority over consequential side e
 | 🧪 **Quality** | Pytest, Ruff, frontend production build, migration validation in CI |
 | 📬 **Durable coordination** | Database idempotency claims, task leases + heartbeats, event outbox |
 | 🖥️ **Operator UX** | Task detail, approvals, evidence, verification, worker/runtime views |
+| 📈 **Observability** | Prometheus metrics, request timing, structured JSON request logs |
 
 ---
 
@@ -334,6 +335,7 @@ There is no fabricated <code>TaskRunner</code> API in the README: examples inten
 |---|---|---|
 | <code>GET</code> | <code>/health</code> | Liveness check |
 | <code>GET</code> | <code>/ready</code> | Database readiness check |
+| <code>GET</code> | <code>/metrics</code> | Prometheus metrics scrape endpoint |
 | <code>POST</code> | <code>/tasks</code> | Create a task |
 | <code>GET</code> | <code>/tasks</code> | List recent tasks |
 | <code>GET</code> | <code>/tasks/{task_id}</code> | Read task state |
@@ -460,10 +462,8 @@ AutoWorker already has a substantial production-oriented core: explicit task lif
 
 ### What we are building next
 
-1. **Queue-backed multi-worker dispatch** — extend the durable worker foundation into real queued distributed execution.
-3. **Broader end-to-end computer-use coverage** — exercise controlled browser workflows against PostgreSQL-backed state.
-4. **Production observability** — add metrics, structured telemetry, and stronger runtime diagnostics.
-5. **Dedicated deployment validation** — finish isolated infrastructure, health checks, and release verification.
+1. **Dedicated deployment validation** — finish isolated infrastructure, health checks, and release verification.
+2. **Deeper runtime diagnostics** — expand worker-level metrics and trace correlation as execution scales.
 
 This is deliberate engineering scope, not a claim that every production concern is already solved.
 
@@ -485,8 +485,9 @@ This is deliberate engineering scope, not a claim that every production concern 
 [✓] Database-backed worker leases + heartbeat
 [✓] Operator-grade task / approval / evidence console
 [✓] Controlled browser + PostgreSQL E2E quality gate
-[ ] Full multi-worker queue dispatch
-[ ] End-to-end controlled-browser demo
+[✓] Durable task dispatch queue
+[✓] Prometheus request metrics + structured request logs
+[ ] External queue/broker-backed multi-worker fleet
 [ ] Production deployment + observability
 ~~~
 
@@ -536,7 +537,7 @@ For architecture-level changes, update the relevant documentation in <code>ARCHI
 
 AutoWorker is **not yet a fully autonomous production deployment**.
 
-The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Queue-backed multi-worker dispatch, deeper observability, and deployment validation remain roadmap work.
+The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. An external queue/broker-backed worker fleet and production deployment/observability remain roadmap work.
 
 ---
 
