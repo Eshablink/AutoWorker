@@ -30,6 +30,66 @@ def upgrade() -> None:
     op.create_index("ix_approval_requests_status", "approval_requests", ["status"])
     op.create_index("ix_approval_requests_expires_at", "approval_requests", ["expires_at"])
 
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute(
+            sa.text(
+                """
+                INSERT INTO approval_requests (
+                    approval_id, task_id, action_id, policy_decision_id,
+                    status, tool_id, risk_level, expires_at, created_at, decided_at
+                )
+                SELECT
+                    action->'approval_request'->>'approval_id',
+                    t.task_id,
+                    action->'approval_request'->>'action_id',
+                    action->'approval_request'->>'policy_decision_id',
+                    action->'approval_request'->>'status',
+                    action->'approval_request'->>'tool_id',
+                    action->'approval_request'->>'risk_level',
+                    CASE
+                        WHEN action->'approval_request'->>'expires_at' IS NULL THEN NULL
+                        ELSE (action->'approval_request'->>'expires_at')::timestamptz
+                    END,
+                    (action->'approval_request'->>'created_at')::timestamptz,
+                    CASE
+                        WHEN action->'approval_request'->>'decided_at' IS NULL THEN NULL
+                        ELSE (action->'approval_request'->>'decided_at')::timestamptz
+                    END
+                FROM tasks AS t
+                CROSS JOIN LATERAL json_array_elements(t.payload->'actions') AS action
+                WHERE action->'approval_request' IS NOT NULL
+                  AND action->'approval_request'->>'approval_id' IS NOT NULL
+                ON CONFLICT (approval_id) DO NOTHING
+                """
+            )
+        )
+    elif bind.dialect.name == "sqlite":
+        op.execute(
+            sa.text(
+                """
+                INSERT OR IGNORE INTO approval_requests (
+                    approval_id, task_id, action_id, policy_decision_id,
+                    status, tool_id, risk_level, expires_at, created_at, decided_at
+                )
+                SELECT
+                    json_extract(value, '$.approval_request.approval_id'),
+                    t.task_id,
+                    json_extract(value, '$.approval_request.action_id'),
+                    json_extract(value, '$.approval_request.policy_decision_id'),
+                    json_extract(value, '$.approval_request.status'),
+                    json_extract(value, '$.approval_request.tool_id'),
+                    json_extract(value, '$.approval_request.risk_level'),
+                    json_extract(value, '$.approval_request.expires_at'),
+                    json_extract(value, '$.approval_request.created_at'),
+                    json_extract(value, '$.approval_request.decided_at')
+                FROM tasks AS t
+                JOIN json_each(t.payload, '$.actions')
+                WHERE json_extract(value, '$.approval_request.approval_id') IS NOT NULL
+                """
+            )
+        )
+
 
 def downgrade() -> None:
     op.drop_index("ix_approval_requests_expires_at", table_name="approval_requests")
