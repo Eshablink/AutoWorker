@@ -81,3 +81,39 @@ def test_stale_pending_message_is_reclaimed():
     message = broker.consume("worker-a")
     assert message is not None
     broker.acknowledge(message)
+
+
+def test_worker_fleet_processes_and_acknowledges_runtime_result():
+    from threading import Event
+    from packages.domain.models import TaskStatus
+    from packages.worker.fleet import WorkerFleet
+    from packages.worker.runtime import WorkerRunResult
+
+    class Runtime:
+        def __init__(self):
+            self.processed = []
+
+        def run_task(self, task_id):
+            self.processed.append(task_id)
+            return WorkerRunResult(task_id, TaskStatus.COMPLETED, True, "verification")
+
+    runtime = Runtime()
+    redis = FakeRedis()
+    broker = RedisStreamsTaskBroker(redis)
+    fleet = WorkerFleet(runtime, broker, worker_id="worker-a")
+    task_id = uuid4()
+    broker.publish(task_id)
+
+    stop_event = Event()
+
+    def ack_and_stop(message):
+        broker.acknowledge(message)
+        stop_event.set()
+
+    message = broker.consume("worker-a")
+    assert message is not None
+    result = fleet._process(message.task_id)
+    assert result is not None
+    assert runtime.processed == [task_id]
+    ack_and_stop(message)
+    assert stop_event.is_set()
