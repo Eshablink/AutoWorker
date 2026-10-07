@@ -11,8 +11,9 @@ from packages.domain.state import TaskStateMachine
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 from packages.observability.metrics import APPROVAL_DECISIONS
 from apps.api.database import get_task_repository
+from apps.api.auth import require_api_auth
 
-router = APIRouter(prefix="/approvals", tags=["approvals"])
+router = APIRouter(prefix="/approvals", tags=["approvals"], dependencies=[Depends(require_api_auth)])
 
 
 

@@ -231,7 +231,7 @@ Open:
 | **Health** | http://localhost:8000/health |
 | **Readiness** | http://localhost:8000/ready |
 
-The API container runs Alembic migrations before starting the application.
+The API container runs Alembic migrations before starting the application. Docker Compose uses development mode intentionally; production deployments should set an explicit API token.
 
 ### Option B — Backend + frontend locally
 
@@ -278,6 +278,12 @@ AutoWorker reads configuration from environment variables.
 | <code>LLM_API_KEY</code> | unset | Optional agent/LLM provider credential |
 | <code>LLM_MODEL</code> | unset | Optional agent/LLM model identifier |
 | <code>CORS_ORIGINS</code> | <code>http://localhost:5173</code> outside production | Comma-separated explicit browser origins |
+| <code>AUTOWORKER_API_TOKEN</code> | unset | Required bearer token for protected production operator/task APIs |
+| <code>REDIS_URL</code> | unset | Optional Redis Streams broker transport URL |
+
+### Production API authentication
+
+When <code>AUTOWORKER_ENV=production</code>, task, event, and approval APIs require <code>Authorization: Bearer &lt;AUTOWORKER_API_TOKEN&gt;</code>. The operator console can send the same credential through <code>VITE_API_TOKEN</code>. Health, readiness, and metrics remain suitable for infrastructure probes.
 
 ### Production CORS behavior
 
@@ -560,7 +566,7 @@ Execution → Verification → Audit
 
 AutoWorker is **not yet a fully autonomous production deployment**.
 
-The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Production deployment, broker hardening, and deeper worker-level observability remain roadmap work.
+The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Broker authentication/TLS/retention hardening, deeper worker-level observability, and deployment validation remain roadmap work.
 
 ---
 

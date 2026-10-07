@@ -108,6 +108,23 @@ def ready() -> dict[str, str]:
         ) from exc
     finally:
         session.close()
+
+    if settings.redis_url:
+        try:
+            from redis import Redis
+            client = Redis.from_url(settings.redis_url)
+            client.ping()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Redis is unavailable.",
+            ) from exc
+        finally:
+            try:
+                client.close()
+            except UnboundLocalError:
+                pass
+
     return {"status": "ready", "service": "autoworker-api"}
 
 

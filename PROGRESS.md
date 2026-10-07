@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 8 — External worker fleet
+Phase 9 — Production security readiness
 
 ## Completed
 - Production-oriented repository, architecture, safety state machine, typed tool boundaries, persistence foundation, worker orchestration, verification, evidence, audit, browser/document/ERP boundaries, React dashboard, Docker, and CI.
@@ -22,6 +22,8 @@ Phase 8 — External worker fleet
 - Durable task dispatch queue coordinates worker claims on top of persistent leases, with blocked approval states and stale-claim recovery.
 - Prometheus request metrics, response timing headers, and structured JSON request logs provide an operational telemetry foundation.
 - Redis Streams transport now supports consumer groups, worker distribution, and stale pending-message reclamation while SQL remains authoritative.
+- Production task, event, and approval APIs now enforce bearer-token authentication; the operator console can send a bearer token when configured.
+- Readiness now checks the configured Redis transport in addition to the database.
 - CI has continuously validated frontend builds and backend tests; the hardening branch is only considered merge-ready when its latest run is green.
 
 ## Current Hardening Review
@@ -33,8 +35,8 @@ Phase 8 — External worker fleet
 - Production deployment and broker hardening remain before final release.
 
 ## Next
-- Add deeper worker-level metrics and trace correlation.
 - Harden Redis transport for production (authentication, TLS, retention, operational controls).
+- Add deeper worker-level metrics and trace correlation.
 - Then deploy with a dedicated AutoWorker database and verify production health before final release.
 
 ## Rule

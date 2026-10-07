@@ -109,6 +109,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     services:
       postgres:
         image: pgvector/pgvector:pg17
@@ -128,6 +129,11 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pyproject.toml') }}
       - run: pip install -e ".[dev,browser]"
       - run: python -m playwright install --with-deps chromium
       - name: Run controlled browser E2E
