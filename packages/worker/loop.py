@@ -1,7 +1,6 @@
 """Long-running worker loop around the durable task runtime."""
 
 from threading import Event
-from time import sleep
 from typing import Callable
 
 from packages.worker.runtime import WorkerRuntime, WorkerRunResult
