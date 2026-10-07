@@ -1,5 +1,5 @@
 from packages.audit.events import EventType
-from packages.domain.models import Task, TaskAction, TaskStatus, ToolDefinition, ToolRisk
+from packages.domain.models import Task, TaskAction, TaskStatus, ToolDefinition
 from packages.persistence.memory import InMemoryTaskRepository
 from packages.policy.engine import PolicyEngine
 from packages.tools.registry import ToolRegistry
