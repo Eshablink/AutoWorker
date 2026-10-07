@@ -218,3 +218,26 @@ def test_running_transition_rejects_action_without_policy_decision(sample_task):
     task = _ready(sample_task)
     with pytest.raises(InvariantViolationError, match="without a PolicyDecision"):
         TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")
+
+
+def test_expired_approval_cannot_resume_task(sample_task):
+    from datetime import datetime, timedelta, timezone
+
+    action, policy = _high_risk_action(sample_task)
+    action.approval_request = ApprovalRequest(
+        task_id=sample_task.task_id,
+        action_id=action.action_id,
+        policy_decision_id=policy.decision_id,
+        status=ApprovalStatus.APPROVED,
+        requested_action_name="Execute Refund",
+        tool_id="execute_refund",
+        payload_summary={"amount": 1000},
+        risk_level=ToolRisk.HIGH,
+        reason_required="High value transaction",
+        approver_id="manager",
+        expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    sample_task.actions = [action]
+    task = _ready(sample_task)
+    with pytest.raises(InvariantViolationError, match="has expired"):
+        TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")
