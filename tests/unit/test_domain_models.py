@@ -124,3 +124,22 @@ def test_policy_version_cannot_be_blank():
             reason="Allowed for testing",
             policy_version="   ",
         )
+
+
+def test_approval_request_expired_property():
+    from datetime import datetime, timedelta, timezone
+    from packages.domain.models import ApprovalRequest, ApprovalStatus
+
+    approval = ApprovalRequest(
+        task_id=uuid4(),
+        action_id=uuid4(),
+        policy_decision_id=uuid4(),
+        status=ApprovalStatus.PENDING,
+        requested_action_name="Approve invoice",
+        tool_id="erp_submit",
+        payload_summary={},
+        risk_level=ToolRisk.HIGH,
+        reason_required="Financial write",
+        expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    assert approval.expired is True
