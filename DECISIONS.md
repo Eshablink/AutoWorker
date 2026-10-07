@@ -40,3 +40,13 @@ The registered ToolDefinition owns the side-effect classification used by policy
 **Status:** Accepted
 
 The reference EventBus keeps a bounded recent window. Durable audit persistence remains the source of truth; the in-process bus is not an unbounded event store.
+
+## ADR-009 — Redis is a dispatch hint; SQL is the source of truth
+**Status:** Accepted
+
+Redis Streams improves worker delivery latency and cross-process distribution, but the durable SQL dispatch queue remains authoritative. Worker fleets periodically poll SQL even when Redis is configured, so a lost broker hint or temporary Redis outage cannot permanently strand an eligible task.
+
+## ADR-010 — At-least-once broker handling over eager ACK
+**Status:** Accepted
+
+A worker ACKs a Redis message only after the runtime returns a result. Processing exceptions intentionally leave the message pending so Redis consumer-group reclamation can retry delivery. Database leases and idempotency remain the final duplicate-execution safety boundaries.
