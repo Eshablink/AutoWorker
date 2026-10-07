@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import JSON, DateTime, Integer, String, Text, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
-from packages.domain.models import AuditEvent, Task
+from packages.domain.models import AuditEvent, Task, TaskStatus
 from packages.domain.repository import ConcurrentUpdateError, TaskNotFoundError
 from packages.domain.serialization import task_from_record, task_to_record
 
@@ -126,6 +126,7 @@ class SqlAlchemyTaskRepository:
             )
         )
         self._sync_approval_projection(task)
+        self._enqueue_dispatch_task(task)
         return task
 
     def save(self, task: Task, audit_event: AuditEvent, *, expected_version: int) -> Task:
@@ -150,6 +151,53 @@ class SqlAlchemyTaskRepository:
         )
         self._sync_approval_projection(task)
         return task
+
+    def _enqueue_dispatch_task(self, task: Task) -> None:
+        eligible = {
+            TaskStatus.CREATED,
+            TaskStatus.READY,
+            TaskStatus.RUNNING,
+            TaskStatus.RECOVERING,
+        }
+        if task.status not in eligible:
+            return
+        row = self.session.get(DispatchQueueRecord, str(task.task_id))
+        if row is None:
+            self.session.add(
+                DispatchQueueRecord(
+                    task_id=str(task.task_id),
+                    state="READY",
+                    available_at=task.updated_at,
+                    attempts=0,
+                )
+            )
+
+    def enqueue_dispatch(self, task_id: UUID) -> None:
+        row = self.session.get(DispatchQueueRecord, str(task_id))
+        if row is None:
+            self.session.add(
+                DispatchQueueRecord(
+                    task_id=str(task_id),
+                    state="READY",
+                    available_at=datetime.utcnow(),
+                    attempts=0,
+                )
+            )
+        else:
+            row.state = "READY"
+            row.available_at = datetime.utcnow()
+            row.claimed_by = None
+            row.claimed_at = None
+            row.last_error = None
+
+    def complete_dispatch(self, task_id: UUID) -> None:
+        row = self.session.get(DispatchQueueRecord, str(task_id))
+        if row is None:
+            return
+        row.state = "DONE"
+        row.completed_at = datetime.utcnow()
+        row.claimed_by = None
+        row.claimed_at = None
 
     def _sync_approval_projection(self, task: Task) -> None:
         for action in task.actions:
