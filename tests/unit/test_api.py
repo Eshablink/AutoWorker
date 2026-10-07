@@ -46,7 +46,7 @@ from packages.persistence.memory import InMemoryTaskRepository
 
 def test_operator_task_detail_exposes_actions(monkeypatch):
     repository = InMemoryTaskRepository()
-    monkeypatch.setattr("apps.api.routes.tasks.get_task_repository", lambda: repository)
+    app.dependency_overrides[get_task_repository] = lambda: repository
     task = Task(goal="Inspect invoice task")
     action = TaskAction(
         task_id=task.task_id,
@@ -67,11 +67,11 @@ def test_operator_task_detail_exposes_actions(monkeypatch):
     body = response.json()
     assert body["actions"][0]["tool_id"] == "invoice_extract"
     assert body["actions"][0]["tool_output"]["invoice_number"] == "INV-42"
+    app.dependency_overrides.pop(get_task_repository, None)
 
 
 def test_operator_approval_inbox_lists_pending_actions(monkeypatch):
     repository = InMemoryTaskRepository()
-    monkeypatch.setattr("apps.api.routes.approvals.get_task_repository", lambda: repository)
     task = Task(goal="Approve ERP invoice")
     action = TaskAction(
         task_id=task.task_id,
