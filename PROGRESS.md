@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 6 — Operator product & E2E validation
+Phase 7 — Distributed dispatch & observability
 
 ## Completed
 - Production-oriented repository, architecture, safety state machine, typed tool boundaries, persistence foundation, worker orchestration, verification, evidence, audit, browser/document/ERP boundaries, React dashboard, Docker, and CI.
@@ -19,6 +19,8 @@ Phase 6 — Operator product & E2E validation
 - In-process operational event memory is bounded to prevent unbounded growth.
 - Operator console exposes task detail, approval inbox, verification state, evidence references, and worker/runtime posture.
 - Controlled browser E2E runs in CI against Chromium with PostgreSQL migrations and an invoice-to-ERP integration path.
+- Durable task dispatch queue coordinates worker claims on top of persistent leases, with blocked approval states and stale-claim recovery.
+- Prometheus request metrics, response timing headers, and structured JSON request logs provide an operational telemetry foundation.
 - CI has continuously validated frontend builds and backend tests; the hardening branch is only considered merge-ready when its latest run is green.
 
 ## Current Hardening Review
@@ -27,11 +29,11 @@ Phase 6 — Operator product & E2E validation
 - The reference worker runtime can now use DB-backed leases with heartbeat renewal and can run continuously through the WorkerLoop.
 - Approval lookup is now a normalized indexed projection.
 - Browser/document layers contain legacy compatibility modules that should be consolidated only after import usage is mapped.
-- Full end-to-end validation still needs broader PostgreSQL-backed controlled-browser integration.
+- Production deployment and external broker-backed fleet validation remain before final release.
 
 ## Next
-- Add queue-backed multi-worker dispatch on top of the durable lease foundation.
-- Add production observability: metrics, structured telemetry, and runtime diagnostics.
+- Extend the durable queue into an external broker-backed worker fleet.
+- Add deeper worker-level metrics and trace correlation.
 - Then deploy with a dedicated AutoWorker database and verify production health before final release.
 
 ## Rule
