@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from packages.audit.events import EventType, TaskEvent
 from packages.persistence.sqlalchemy import Base
@@ -21,7 +22,7 @@ from packages.worker.lease import LeaseError
 
 @pytest.fixture
 def session_factory():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     return sessionmaker(engine, expire_on_commit=False)
 
@@ -80,3 +81,15 @@ def test_sqlalchemy_lease_can_heartbeat(session_factory):
     lease = store.acquire(task_id, "worker-a")
     renewed = store.heartbeat(lease)
     assert renewed.expires_at > lease.expires_at
+
+
+def test_event_bus_can_persist_events_to_outbox(session_factory):
+    from packages.audit.events import EventBus
+
+    store = SqlAlchemyEventOutbox(session_factory)
+    bus = EventBus(durable_sink=store)
+    event = TaskEvent(task_id=uuid4(), event_type=EventType.TASK_STATE_CHANGED)
+
+    bus.publish(event)
+
+    assert store.claim_batch(limit=10)[0].event_id == event.event_id
