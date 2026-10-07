@@ -24,3 +24,19 @@ Auditability will use structured action metadata, tool results, policy decisions
 **Status:** Accepted
 
 One genuine end-to-end workflow is more valuable than many simulated integrations.
+
+
+## ADR-006 — Expiring human approvals
+**Status:** Accepted
+
+High-risk approval requests created by the orchestrator expire after 15 minutes. Expiration fails the waiting task and is persisted before returning the conflict response. This prevents stale human authorization from being reused.
+
+## ADR-007 — Registry is authoritative for side effects
+**Status:** Accepted
+
+The registered ToolDefinition owns the side-effect classification used by policy. Action metadata cannot downgrade a registered side-effecting tool.
+
+## ADR-008 — Bound in-process event memory
+**Status:** Accepted
+
+The reference EventBus keeps a bounded recent window. Durable audit persistence remains the source of truth; the in-process bus is not an unbounded event store.
