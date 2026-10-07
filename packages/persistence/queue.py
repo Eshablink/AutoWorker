@@ -70,7 +70,24 @@ class SqlAlchemyTaskQueue:
 
     def claim_next(self, worker_id: str) -> UUID | None:
         now = datetime.now(timezone.utc)
+        stale_before = now - timedelta(seconds=120)
         with self.session_factory() as session:
+            session.execute(
+                update(DispatchQueueRecord)
+                .where(
+                    DispatchQueueRecord.state == self.CLAIMED,
+                    DispatchQueueRecord.claimed_at.is_not(None),
+                    DispatchQueueRecord.claimed_at < stale_before,
+                )
+                .values(
+                    state=self.READY,
+                    claimed_by=None,
+                    claimed_at=None,
+                    available_at=now,
+                    last_error="Recovered stale dispatch claim.",
+                )
+            )
+            session.commit()
             stmt = (
                 select(DispatchQueueRecord)
                 .where(
