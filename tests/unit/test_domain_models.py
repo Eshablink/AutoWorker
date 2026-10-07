@@ -143,3 +143,21 @@ def test_approval_request_expired_property():
         expires_at=datetime.now(timezone.utc) - timedelta(seconds=1),
     )
     assert approval.expired is True
+
+
+def test_approval_expiry_naive_datetime_is_normalized_to_utc():
+    from datetime import datetime
+
+    approval = ApprovalRequest(
+        task_id=uuid4(),
+        action_id=uuid4(),
+        policy_decision_id=uuid4(),
+        requested_action_name="Approve invoice",
+        tool_id="erp_submit",
+        payload_summary={},
+        risk_level=ToolRisk.HIGH,
+        reason_required="Financial write",
+        expires_at=datetime(2030, 1, 1, 12, 0, 0),
+    )
+    assert approval.expires_at.tzinfo is not None
+    assert approval.expires_at.utcoffset().total_seconds() == 0
