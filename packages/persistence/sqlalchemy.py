@@ -83,6 +83,19 @@ class EventOutboxRecord(Base):
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class DispatchQueueRecord(Base):
+    __tablename__ = "task_dispatch_queue"
+
+    task_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    state: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    claimed_by: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class SqlAlchemyTaskRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
