@@ -115,7 +115,7 @@ class PolicyDecision(BaseModel):
     evaluated_rules: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=default_utc_now)
 
-    @field_validator("tool_id", "reason")
+    @field_validator("tool_id", "reason", "policy_version")
     @classmethod
     def validate_strings(cls, v: str, info) -> str:
         if not v or not v.strip():
@@ -227,6 +227,16 @@ class TaskAction(BaseModel):
             raise ValueError(f"TaskAction field '{info.field_name}' cannot be empty.")
         return v.strip()
 
+    @field_validator("idempotency_key")
+    @classmethod
+    def validate_idempotency_key(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        normalized = v.strip()
+        if not normalized:
+            raise ValueError("idempotency_key cannot be empty or whitespace.")
+        return normalized
+
     @model_validator(mode="after")
     def validate_retries(self) -> "TaskAction":
         if self.retry_count > self.max_retries:
@@ -250,6 +260,7 @@ class Task(BaseModel):
     @field_validator("goal")
     @classmethod
     def validate_goal_not_blank(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Task goal cannot be empty or whitespace only.")
-        return v.strip()
+        normalized = v.strip()
+        if len(normalized) < 5:
+            raise ValueError("Task goal must contain at least 5 non-whitespace characters.")
+        return normalized
