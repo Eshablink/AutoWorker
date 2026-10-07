@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -29,13 +29,24 @@ class TaskEvent(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class DurableEventSink(Protocol):
+    def append(self, event: "TaskEvent") -> "TaskEvent":
+        ...
+
+
 class EventBus:
     """Bounded in-process event bus; replaceable by Redis/Kafka later."""
 
-    def __init__(self, *, max_events: int = 10_000) -> None:
+    def __init__(
+        self,
+        *,
+        max_events: int = 10_000,
+        durable_sink: DurableEventSink | None = None,
+    ) -> None:
         if max_events < 1:
             raise ValueError("max_events must be at least 1.")
         self.max_events = max_events
+        self.durable_sink = durable_sink
         self._events: list[TaskEvent] = []
 
     def publish(self, event: TaskEvent) -> TaskEvent:
@@ -43,6 +54,8 @@ class EventBus:
         overflow = len(self._events) - self.max_events
         if overflow > 0:
             del self._events[:overflow]
+        if self.durable_sink is not None:
+            self.durable_sink.append(event)
         return event
 
     def list_for_task(self, task_id: UUID) -> list[TaskEvent]:
