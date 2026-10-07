@@ -84,6 +84,26 @@ class RedisStreamsTaskBroker:
         self.group_name = group_name
         self._ensure_group()
 
+    @classmethod
+    def from_url(
+        cls,
+        url: str,
+        *,
+        stream_name: str = "autoworker:tasks",
+        group_name: str = "autoworkers",
+    ) -> "RedisStreamsTaskBroker":
+        try:
+            from redis import Redis
+        except ImportError as exc:
+            raise RuntimeError(
+                "Redis support is not installed. Install the redis dependency."
+            ) from exc
+        return cls(
+            Redis.from_url(url, decode_responses=True),
+            stream_name=stream_name,
+            group_name=group_name,
+        )
+
     def _ensure_group(self) -> None:
         try:
             self.redis.xgroup_create(
