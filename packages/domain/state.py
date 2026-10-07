@@ -133,6 +133,10 @@ class TaskStateMachine:
                 f"Current TaskAction status '{action.status.value}' cannot execute."
             )
         policy = action.policy_decision
+        if policy is None:
+            raise InvariantViolationError(
+                f"Action {action.action_id} cannot enter RUNNING without a PolicyDecision."
+            )
         requires_idempotency = action.is_side_effecting or (
             policy is not None and policy.risk_level in {ToolRisk.HIGH, ToolRisk.CRITICAL}
         )
@@ -140,8 +144,6 @@ class TaskStateMachine:
             raise InvariantViolationError(
                 f"Action {action.action_id} is side-effecting/high-risk and requires a non-empty idempotency_key."
             )
-        if policy is None:
-            return
         if policy.outcome == PolicyOutcome.DENY:
             raise InvariantViolationError(
                 f"PolicyDecision denied execution: {policy.reason}"
