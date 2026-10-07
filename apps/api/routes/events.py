@@ -3,10 +3,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from apps.api.database import get_task_repository
+from apps.api.auth import require_api_auth
 from packages.domain.repository import TaskNotFoundError
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 
-router = APIRouter(prefix="/tasks", tags=["events"])
+router = APIRouter(prefix="/tasks", tags=["events"], dependencies=[Depends(require_api_auth)])
 
 
 @router.get("/{task_id}/events")
