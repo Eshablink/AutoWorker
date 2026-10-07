@@ -18,10 +18,35 @@ def upgrade() -> None:
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
-            nullable=False,
+            nullable=True,
             server_default=sa.text("CURRENT_TIMESTAMP"),
         ),
     )
+
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute(
+            sa.text(
+                """
+                UPDATE tasks
+                SET created_at = (payload ->> 'created_at')::timestamptz
+                WHERE payload ->> 'created_at' IS NOT NULL
+                """
+            )
+        )
+    elif bind.dialect.name == "sqlite":
+        op.execute(
+            sa.text(
+                """
+                UPDATE tasks
+                SET created_at = json_extract(payload, '$.created_at')
+                WHERE json_extract(payload, '$.created_at') IS NOT NULL
+                """
+            )
+        )
+
+    op.alter_column("tasks", "created_at", nullable=False)
+    op.alter_column("tasks", "created_at", server_default=None)
     op.create_index("ix_tasks_created_at", "tasks", ["created_at"])
 
 
