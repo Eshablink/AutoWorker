@@ -6,6 +6,7 @@ This layer owns execution orchestration, not tool-specific automation.
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from threading import Lock
 from typing import Any, Mapping, Protocol
 
 from packages.domain.models import ActionStatus, PolicyOutcome, TaskAction, ToolRisk
@@ -13,6 +14,10 @@ from packages.domain.models import ActionStatus, PolicyOutcome, TaskAction, Tool
 
 class ToolExecutionError(RuntimeError):
     """Raised when a registered tool fails during execution."""
+
+
+class IdempotencyInProgressError(RuntimeError):
+    """Raised when another execution currently owns an idempotency key."""
 
 
 @dataclass(frozen=True)
@@ -30,6 +35,10 @@ class IdempotencyStore(Protocol):
     def get(self, key: str) -> ToolExecutionResult | None:
         ...
 
+    def claim(self, key: str) -> ToolExecutionResult | None:
+        """Atomically claim a key or return a previously completed result."""
+        ...
+
     def put(self, key: str, result: ToolExecutionResult) -> None:
         ...
 
@@ -37,12 +46,29 @@ class IdempotencyStore(Protocol):
 class InMemoryIdempotencyStore:
     def __init__(self) -> None:
         self._results: dict[str, ToolExecutionResult] = {}
+        self._in_progress: set[str] = set()
+        self._lock = Lock()
 
     def get(self, key: str) -> ToolExecutionResult | None:
-        return self._results.get(key)
+        with self._lock:
+            return self._results.get(key)
+
+    def claim(self, key: str) -> ToolExecutionResult | None:
+        with self._lock:
+            existing = self._results.get(key)
+            if existing is not None:
+                return existing
+            if key in self._in_progress:
+                raise IdempotencyInProgressError(
+                    f"Idempotency key '{key}' is already claimed by another execution."
+                )
+            self._in_progress.add(key)
+            return None
 
     def put(self, key: str, result: ToolExecutionResult) -> None:
-        self._results[key] = result
+        with self._lock:
+            self._results[key] = result
+            self._in_progress.discard(key)
 
 
 class ExecutionWorker:
@@ -92,7 +118,7 @@ class ExecutionWorker:
 
         try:
             if action.is_side_effecting and action.idempotency_key:
-                existing = self.idempotency_store.get(action.idempotency_key)
+                existing = self.idempotency_store.claim(action.idempotency_key)
                 if existing is not None:
                     action.tool_output = dict(existing.output)
                     action.observation = existing.observation
