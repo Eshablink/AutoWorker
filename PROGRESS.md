@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 5 — Durable distributed execution layer
+Phase 6 — Operator product & E2E validation
 
 ## Completed
 - Production-oriented repository, architecture, safety state machine, typed tool boundaries, persistence foundation, worker orchestration, verification, evidence, audit, browser/document/ERP boundaries, React dashboard, Docker, and CI.
@@ -17,6 +17,8 @@ Phase 5 — Durable distributed execution layer
 - Human approval requests can expire after 15 minutes; expired approvals are persisted as failed/expired instead of being accepted.
 - Verification checks require unique non-empty names and callable callbacks.
 - In-process operational event memory is bounded to prevent unbounded growth.
+- Operator console exposes task detail, approval inbox, verification state, evidence references, and worker/runtime posture.
+- Controlled browser E2E runs in CI against Chromium with PostgreSQL migrations and an invoice-to-ERP integration path.
 - CI has continuously validated frontend builds and backend tests; the hardening branch is only considered merge-ready when its latest run is green.
 
 ## Current Hardening Review
@@ -28,8 +30,8 @@ Phase 5 — Durable distributed execution layer
 - Full end-to-end validation still needs broader PostgreSQL-backed controlled-browser integration.
 
 ## Next
-- Complete real approval/audit/evidence task-detail flows in the web console.
-- Add end-to-end PostgreSQL/browser workflow tests.
+- Add queue-backed multi-worker dispatch on top of the durable lease foundation.
+- Add production observability: metrics, structured telemetry, and runtime diagnostics.
 - Then deploy with a dedicated AutoWorker database and verify production health before final release.
 
 ## Rule

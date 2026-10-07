@@ -48,6 +48,22 @@ class InMemoryTaskRepository:
                     return deepcopy(task)
         raise TaskNotFoundError(str(approval_id))
 
+    def list_pending_approvals(self, *, limit: int = 50) -> list[Task]:
+        if limit < 1:
+            raise ValueError("limit must be at least 1.")
+        results: list[Task] = []
+        for task in self._tasks.values():
+            if task.status.value != "WAITING_APPROVAL":
+                continue
+            if any(
+                action.approval_request and action.approval_request.status.value == "PENDING"
+                for action in task.actions
+            ):
+                results.append(deepcopy(task))
+            if len(results) >= limit:
+                break
+        return results
+
     def list_audit(self, task_id: UUID) -> list[AuditEvent]:
         return [deepcopy(e) for e in self._audit if e.task_id == task_id]
 

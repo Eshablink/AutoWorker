@@ -166,6 +166,21 @@ class SqlAlchemyTaskRepository:
             raise TaskNotFoundError(str(approval_id))
         return self.get(UUID(row.task_id))
 
+    def list_pending_approvals(self, *, limit: int = 50) -> list[Task]:
+        if limit < 1:
+            raise ValueError("limit must be at least 1.")
+        approval_rows = self.session.execute(
+            select(ApprovalRecord)
+            .where(ApprovalRecord.status == "PENDING")
+            .order_by(ApprovalRecord.created_at.asc())
+            .limit(limit)
+        ).scalars().all()
+        task_ids = list(dict.fromkeys(row.task_id for row in approval_rows))
+        return [
+            self.get(UUID(task_id))
+            for task_id in task_ids
+        ]
+
     def list_audit(self, task_id: UUID) -> list[AuditEvent]:
         rows = self.session.execute(
             select(AuditRecord).where(AuditRecord.task_id == str(task_id))
