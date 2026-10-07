@@ -13,7 +13,7 @@
 [![PostgreSQL](https://img.shields.io/badge/Data-PostgreSQL%2017-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Playwright](https://img.shields.io/badge/Browser-Playwright-45BA63?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Repo Size](https://img.shields.io/github/repo-size/Eshablink/AutoWorker)](https://github.com/Eshablink/AutoWorker)
-[![Phase](https://img.shields.io/badge/phase-7%20dispatch%20%26%20observability-6f42c1)](PROGRESS.md)
+[![Phase](https://img.shields.io/badge/phase-8%20worker%20fleet-6f42c1)](PROGRESS.md)
 
 [**Architecture**](ARCHITECTURE.md) · [**Project Brief**](PROJECT_BRIEF.md) · [**Decisions**](DECISIONS.md) · [**Progress**](PROGRESS.md)
 
@@ -97,6 +97,7 @@ The model is useful, but it is not the final authority over consequential side e
 | 📬 **Durable coordination** | Database idempotency claims, task leases + heartbeats, event outbox |
 | 🖥️ **Operator UX** | Task detail, approvals, evidence, verification, worker/runtime views |
 | 📈 **Observability** | Prometheus metrics, request timing, structured JSON request logs |
+| 🛰️ **Worker Fleet** | Redis Streams consumer groups + durable SQL coordination |
 
 ---
 
@@ -462,7 +463,7 @@ AutoWorker already has a substantial production-oriented core: explicit task lif
 
 ### What we are building next
 
-1. **Dedicated deployment validation** — finish isolated infrastructure, health checks, and release verification.
+1. **Production deployment validation** — finish isolated infrastructure, health checks, and release verification.
 2. **Deeper runtime diagnostics** — expand worker-level metrics and trace correlation as execution scales.
 
 This is deliberate engineering scope, not a claim that every production concern is already solved.
@@ -487,6 +488,7 @@ This is deliberate engineering scope, not a claim that every production concern 
 [✓] Controlled browser + PostgreSQL E2E quality gate
 [✓] Durable task dispatch queue
 [✓] Prometheus request metrics + structured request logs
+[✓] Redis Streams worker fleet transport + consumer-group recovery
 [ ] External queue/broker-backed multi-worker fleet
 [ ] Production deployment + observability
 ~~~
@@ -533,11 +535,32 @@ For architecture-level changes, update the relevant documentation in <code>ARCHI
 
 ---
 
+## 🛰️ Distributed worker fleet
+
+AutoWorker can now use Redis Streams as an external delivery transport. Redis consumer groups distribute work across worker processes, while the durable SQL dispatch queue and task leases remain the system-of-record and concurrency safety boundary. Stale pending Redis messages are reclaimable after an idle timeout.
+
+~~~text
+API / Task Creation
+       ↓
+Durable SQL Dispatch Queue
+       ↓
+Redis Stream
+       ↓
+Consumer Group
+  ├── Worker A
+  ├── Worker B
+  └── Worker C
+       ↓
+DB Lease + Worker Runtime
+       ↓
+Execution → Verification → Audit
+~~~
+
 ## ⚠️ Current limitations
 
 AutoWorker is **not yet a fully autonomous production deployment**.
 
-The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. An external queue/broker-backed worker fleet and production deployment/observability remain roadmap work.
+The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Production deployment, broker hardening, and deeper worker-level observability remain roadmap work.
 
 ---
 
