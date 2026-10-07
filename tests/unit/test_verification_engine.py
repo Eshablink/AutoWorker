@@ -40,3 +40,26 @@ def test_verification_engine_reports_partial_failure():
     )
     assert result.success is False
     assert result.confidence_score == 0.5
+
+
+def test_verification_check_rejects_invalid_metadata():
+    import pytest
+
+    with pytest.raises(ValueError, match="name cannot be empty"):
+        VerificationCheck("   ", lambda a: (True, {}))
+
+    with pytest.raises(TypeError, match="callback must be callable"):
+        VerificationCheck("valid", None)
+
+
+def test_verification_engine_rejects_duplicate_check_names():
+    item = action()
+    with __import__("pytest").raises(ValueError, match="must be unique"):
+        VerificationEngine().verify(
+            item.task_id,
+            item,
+            checks=[
+                VerificationCheck("same", lambda a: (True, {})),
+                VerificationCheck("same", lambda a: (True, {})),
+            ],
+        )
