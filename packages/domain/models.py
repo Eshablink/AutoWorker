@@ -149,6 +149,15 @@ class ApprovalRequest(BaseModel):
     decided_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
 
+    @field_validator("expires_at")
+    @classmethod
+    def normalize_expiry(cls, value: Optional[datetime]) -> Optional[datetime]:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
     @property
     def expired(self) -> bool:
         return self.expires_at is not None and datetime.now(timezone.utc) >= self.expires_at
