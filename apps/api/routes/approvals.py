@@ -51,6 +51,29 @@ def decide_approval(
     if approval.status != ApprovalStatus.PENDING:
         raise HTTPException(status_code=409, detail="Approval request has already been decided.")
 
+    if approval.expired:
+        previous_version = task.version
+        approval.status = ApprovalStatus.EXPIRED
+        approval.decided_at = datetime.now(timezone.utc)
+        task.error_message = "Human approval request expired before a decision was recorded."
+        _, state_audit = TaskStateMachine.transition(
+            task,
+            TaskStatus.FAILED,
+            actor="APPROVAL_SERVICE",
+            reason=task.error_message,
+        )
+        repository.save(task, audit_event=state_audit, expected_version=previous_version)
+        repository.append_audit(
+            AuditEvent(
+                task_id=task.task_id,
+                action_id=action.action_id,
+                event_type="APPROVAL_EXPIRED",
+                actor="APPROVAL_SERVICE",
+                details={"approval_id": str(approval_id)},
+            )
+        )
+        raise HTTPException(status_code=409, detail="Approval request has expired.")
+
     previous_version = task.version
     approval.status = decision.status
     approval.approver_id = decision.approver_id
