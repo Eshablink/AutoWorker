@@ -66,7 +66,11 @@ class ExecutionWorker:
             or policy.risk_level in {ToolRisk.HIGH, ToolRisk.CRITICAL}
         ):
             approval = action.approval_request
-            if approval is None or approval.status.value != "APPROVED":
+            if approval is None or approval.expired:
+                raise PermissionError(
+                    f"Action {action.action_id} cannot execute with an expired or missing HITL authorization."
+                )
+            if approval.status.value != "APPROVED":
                 raise PermissionError(
                     f"Action {action.action_id} cannot execute without approved HITL authorization."
                 )
