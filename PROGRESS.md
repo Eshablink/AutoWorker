@@ -42,16 +42,18 @@ Phase 10 — Observability + broker hardening
 - Production deployment and isolated infrastructure verification remain before final release.
 
 ## Deployment Status
-- **Web:** live on Render as a free static-site deployment.
-- **API:** not production-live because the free-tier workspace has no isolated PostgreSQL + Redis resources available for AutoWorker.
+- **Web:** live on Render as a free static-site deployment, explicitly built against the AutoWorker demo API.
+- **Demo API:** live on a separate free Render service using isolated SQLite storage and no Redis dependency.
+- **Production API:** not production-live because the free-tier workspace has no isolated PostgreSQL + Redis resources available for AutoWorker.
 - Existing PostgreSQL/Redis resources belong to other applications and are intentionally not reused.
 - No paid resources have been created.
 - The API migration failure without `DATABASE_URL` is an infrastructure configuration failure, not a reason to mark the application production-ready.
 - Full production status remains blocked until dedicated database and broker infrastructure can be provisioned and the release gate is verified end-to-end.
 
 ## Next
+- Use the functional Render web + demo API deployment for staging/recruiter preview.
 - Provision isolated PostgreSQL and Redis only if the no-charge constraint is explicitly changed.
-- Until then, use the Render web deployment as a staging/live preview and Docker Compose for the complete local integration stack.
+- Keep Docker Compose as the complete PostgreSQL + Redis integration stack.
 - Do not mark the project production-live until API health/readiness, authentication, explicit CORS, migrations, Redis connectivity, worker execution, queue fallback, and observability all pass on the deployed system.
 
 ## Rule
