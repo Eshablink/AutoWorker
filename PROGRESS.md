@@ -20,12 +20,12 @@ Phase 5 — Durable distributed execution layer
 - CI has continuously validated frontend builds and backend tests; the hardening branch is only considered merge-ready when its latest run is green.
 
 ## Current Hardening Review
-- Durable idempotency is still process-local and should be replaced by an atomic database-backed claim/complete design before multi-worker production.
+- Durable idempotency now uses atomic database-backed claim/complete semantics before side-effecting execution.
 - Orchestrator events can now be persisted through the durable event-outbox sink; delivery is retryable and consumers can deduplicate by event ID.
 - The reference worker runtime can now use DB-backed leases with heartbeat renewal and can run continuously through the WorkerLoop.
 - Approval lookup is now a normalized indexed projection.
 - Browser/document layers contain legacy compatibility modules that should be consolidated only after import usage is mapped.
-- Full end-to-end validation still needs a real PostgreSQL execution path and controlled browser integration.
+- Full end-to-end validation still needs broader PostgreSQL-backed controlled-browser integration.
 
 ## Next
 - Complete real approval/audit/evidence task-detail flows in the web console.
