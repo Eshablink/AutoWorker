@@ -3,6 +3,7 @@ from uuid import uuid4
 from pydantic import ValidationError
 
 from packages.domain.models import (
+    ApprovalRequest,
     AuditEvent,
     EvidenceReference,
     PolicyDecision,
