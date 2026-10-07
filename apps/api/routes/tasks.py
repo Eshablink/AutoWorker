@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from apps.api.database import get_task_repository
 from packages.domain.models import AuditEvent, Task, TaskStatus
 from packages.domain.repository import TaskNotFoundError
+from packages.observability.metrics import TASKS_CREATED
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -57,6 +58,7 @@ def create_task(
 ) -> TaskResponse:
     task = Task(task_id=uuid4(), goal=request.goal)
     repository.create(task)
+    TASKS_CREATED.inc()
     repository.append_audit(
         AuditEvent(
             task_id=task.task_id,
