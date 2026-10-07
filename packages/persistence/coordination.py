@@ -1,13 +1,12 @@
 """Durable PostgreSQL/SQLAlchemy coordination stores for workers."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
-from packages.domain.models import Task
 from packages.persistence.sqlalchemy import (
     EventOutboxRecord,
     ExecutionIdempotencyRecord,
@@ -113,7 +112,7 @@ class SqlAlchemyLeaseManager(LeaseManager):
     def acquire(self, task_id: UUID, worker_id: str) -> WorkerLease:
         now = _utc_now()
         lease_id = uuid4()
-        expires_at = now + __import__("datetime").timedelta(seconds=self.lease_seconds)
+        expires_at = now + timedelta(seconds=self.lease_seconds)
 
         with self.session_factory() as session:
             row = LeaseRecord(
@@ -167,7 +166,7 @@ class SqlAlchemyLeaseManager(LeaseManager):
 
     def heartbeat(self, lease: WorkerLease) -> WorkerLease:
         now = _utc_now()
-        expires_at = now + __import__("datetime").timedelta(seconds=self.lease_seconds)
+        expires_at = now + timedelta(seconds=self.lease_seconds)
         with self.session_factory() as session:
             result = session.execute(
                 update(LeaseRecord)
