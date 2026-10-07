@@ -95,3 +95,32 @@ def test_audit_event_immutability():
     )
     with pytest.raises(ValidationError):
         event.actor = "HACKER"
+
+
+def test_short_non_whitespace_goal_is_rejected():
+    with pytest.raises(ValidationError, match="at least 5 non-whitespace characters"):
+        Task(goal="    a")
+
+
+def test_whitespace_idempotency_key_is_rejected():
+    with pytest.raises(ValidationError, match="idempotency_key"):
+        TaskAction(
+            task_id=uuid4(),
+            step_number=1,
+            tool_id="browser_click",
+            decision_summary="Click button",
+            idempotency_key="   ",
+        )
+
+
+def test_policy_version_cannot_be_blank():
+    with pytest.raises(ValidationError, match="policy_version"):
+        PolicyDecision(
+            task_id=uuid4(),
+            action_id=uuid4(),
+            tool_id="test_tool",
+            outcome=PolicyOutcome.ALLOW,
+            risk_level=ToolRisk.LOW,
+            reason="Allowed for testing",
+            policy_version="   ",
+        )
