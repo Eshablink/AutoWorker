@@ -26,8 +26,6 @@ def test_controlled_browser_executes_fill_and_click():
             </html>
             """
         )
-        page.goto("http://autoworker.local", wait_until="domcontentloaded")
-
         task_id = uuid4()
         action_id = uuid4()
         session.execute(
