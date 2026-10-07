@@ -28,6 +28,8 @@ Phase 10 — Observability + broker hardening
 - Worker fleets now treat Redis as a low-latency dispatch hint and periodically fall back to the durable SQL queue, preventing missed hints or Redis outages from stalling execution.
 - Redis delivery errors are logged without ACKing the message, allowing Redis Streams pending-message reclamation to recover interrupted work.
 - Worker, queue, broker, approval-latency, and authentication metrics now expose operational depth beyond request-only telemetry; task/worker IDs are available in structured logs for correlation.
+- Redis stream/group names, retention, reclaim threshold, and blocking interval are environment-configurable and covered by settings regression tests.
+- Observability regression coverage now verifies worker duration, queue depth, broker operations, and auth-failure metrics are exposed for scraping.
 - CI has continuously validated frontend builds and backend tests; the hardening branch is only considered merge-ready when its latest run is green.
 
 ## Current Hardening Review
@@ -39,8 +41,8 @@ Phase 10 — Observability + broker hardening
 - Production deployment and isolated infrastructure verification remain before final release.
 
 ## Next
-- Deploy with a dedicated AutoWorker database and verify production health, authentication, CORS, Redis connectivity, worker execution, and observability end-to-end.
-- Only after production verification, document the release posture and remove any remaining deployment-specific placeholders.
+- Deployment validation is the remaining release gate: use isolated AutoWorker infrastructure and verify API health/readiness, authentication, explicit CORS, migrations, Redis connectivity, worker execution, queue fallback, and observability end-to-end.
+- Do not mark the project production-live until the deployed system passes those checks.
 
 ## Rule
 Update this file after each meaningful milestone. Do not mark work complete until validated.

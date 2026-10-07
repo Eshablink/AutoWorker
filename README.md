@@ -279,7 +279,12 @@ AutoWorker reads configuration from environment variables.
 | <code>LLM_MODEL</code> | unset | Optional agent/LLM model identifier |
 | <code>CORS_ORIGINS</code> | <code>http://localhost:5173</code> outside production | Comma-separated explicit browser origins |
 | <code>AUTOWORKER_API_TOKEN</code> | unset | Required bearer token for protected production operator/task APIs |
-| <code>REDIS_URL</code> | unset | Optional Redis Streams broker transport URL |
+| <code>REDIS_URL</code> | unset | Optional Redis Streams broker transport URL; supports Redis URL auth/TLS schemes |
+| <code>REDIS_STREAM_NAME</code> | <code>autoworker:tasks</code> | Redis Streams name |
+| <code>REDIS_GROUP_NAME</code> | <code>autoworkers</code> | Redis consumer-group name |
+| <code>REDIS_STALE_IDLE_MS</code> | <code>60000</code> | Minimum pending-message idle time before reclaim |
+| <code>REDIS_MAXLEN</code> | <code>10000</code> | Approximate Redis Stream retention bound |
+| <code>REDIS_BLOCK_MS</code> | <code>1000</code> | Consumer blocking interval in milliseconds |
 
 ### Production API authentication
 
@@ -450,9 +455,9 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) and [DECISIONS.md](DECISIONS.md) for deep
 
 ## 📌 Project status
 
-**Status:** 🟢 Production-oriented foundation + durable execution layer complete · 🚧 Product and distributed runtime depth in progress
+**Status:** 🟢 Phase 10 complete — production-oriented execution, worker-fleet, security, and observability foundations are in place · 🚧 Deployment validation remains
 
-AutoWorker already has a substantial production-oriented core: explicit task lifecycle control, deterministic policy enforcement, human approvals, durable persistence, worker execution/recovery boundaries, independent verification, audit/evidence handling, browser/ERP contracts, and an operations dashboard.
+AutoWorker now has a substantial production-oriented core: explicit task lifecycle control, deterministic policy enforcement, human approvals, durable persistence, worker execution/recovery boundaries, independent verification, audit/evidence handling, browser/ERP contracts, distributed worker transport, structured telemetry, and an operations dashboard.
 
 ### What is solid today
 
@@ -467,10 +472,11 @@ AutoWorker already has a substantial production-oriented core: explicit task lif
 | React + TypeScript operations console | ✅ Implemented |
 | Automated CI + migration regression checks | ✅ Implemented |
 
-### What we are building next
+### Current release gate
 
-1. **Production deployment validation** — finish isolated infrastructure, health checks, and release verification.
-2. **Deeper runtime diagnostics** — expand worker-level metrics and trace correlation as execution scales.
+**Deployment validation is intentionally still pending.** The repository has the application-side controls needed for an isolated deployment: authenticated operator APIs, explicit CORS, database/Redis readiness checks, durable queue fallback, worker fleet recovery, request correlation, worker metrics, and broker telemetry.
+
+A release should only be called production-live after the deployed API, web console, dedicated database, Redis transport, worker process, authentication, CORS, migrations, and observability have been verified end-to-end.
 
 This is deliberate engineering scope, not a claim that every production concern is already solved.
 
@@ -493,10 +499,12 @@ This is deliberate engineering scope, not a claim that every production concern 
 [✓] Operator-grade task / approval / evidence console
 [✓] Controlled browser + PostgreSQL E2E quality gate
 [✓] Durable task dispatch queue
-[✓] Prometheus request metrics + structured request logs
+[✓] Prometheus request, worker, queue, approval, auth, and broker metrics
+[✓] Structured JSON logs + request/worker correlation
 [✓] Redis Streams worker fleet transport + consumer-group recovery
-[ ] External queue/broker-backed multi-worker fleet
-[ ] Production deployment + observability
+[✓] Redis transport configuration + retention/reclaim controls
+[✓] Worker ACK-failure resilience + durable SQL fallback
+[ ] Production deployment + end-to-end release verification
 ~~~
 
 ---
@@ -543,14 +551,15 @@ For architecture-level changes, update the relevant documentation in <code>ARCHI
 
 ## 🛰️ Distributed worker fleet
 
-AutoWorker can now use Redis Streams as an external delivery transport. Redis consumer groups distribute work across worker processes, while the durable SQL dispatch queue and task leases remain the system-of-record and concurrency safety boundary. Stale pending Redis messages are reclaimable after an idle timeout.
+AutoWorker can use Redis Streams as a low-latency delivery transport. The durable SQL dispatch queue remains authoritative and workers periodically fall back to it, so a missing Redis hint or temporary Redis outage does not strand an eligible task. Consumer groups distribute delivery across worker processes, stale pending messages are reclaimable after a configured idle timeout, and a broker ACK failure is deliberately not surfaced as a successful operator result.
 
 ~~~text
-API / Task Creation
+Task creation
        ↓
-Durable SQL Dispatch Queue
+Durable SQL Dispatch Queue  ← system of record
+       ├───────────────→ periodic worker fallback
        ↓
-Redis Stream
+Optional Redis dispatch hint
        ↓
 Consumer Group
   ├── Worker A
@@ -566,7 +575,7 @@ Execution → Verification → Audit
 
 AutoWorker is **not yet a fully autonomous production deployment**.
 
-The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Production deployment validation remains roadmap work; broker configuration, reclaim controls, queue fallback behavior, worker metrics, and request correlation are now covered by explicit runtime controls.
+The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. The API persists dispatch state in SQL; Redis publication is provided by the broker-backed queue/fleet integration rather than silently making Redis a hard dependency of task creation. Production deployment validation is the remaining release gate.
 
 ---
 
