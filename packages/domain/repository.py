@@ -34,6 +34,9 @@ class TaskRepository(Protocol):
     def find_by_approval_id(self, approval_id: UUID) -> Task:
         ...
 
+    def list_pending_approvals(self, *, limit: int = 50) -> list[Task]:
+        ...
+
     def list_audit(self, task_id: UUID) -> list[AuditEvent]:
         ...
 
