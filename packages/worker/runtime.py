@@ -6,6 +6,7 @@ repository from a long-running worker process.
 """
 
 from dataclasses import dataclass
+from threading import Event, Thread
 from typing import Callable, Protocol
 from uuid import UUID
 
@@ -14,7 +15,7 @@ from packages.domain.models import AuditEvent, Task, TaskStatus
 from packages.domain.repository import TaskRepository
 from packages.domain.state import TaskStateMachine
 from packages.verification.engine import VerificationCheck
-from packages.worker.lease import InMemoryLeaseManager
+from packages.worker.lease import InMemoryLeaseManager, LeaseError, LeaseManager, WorkerLease
 from packages.worker.orchestrator import TaskOrchestrator
 from packages.worker.recovery import RecoveryCoordinator
 
@@ -51,7 +52,7 @@ class WorkerRuntime:
         planner: TaskPlanner,
         orchestrator: TaskOrchestrator,
         *,
-        lease_manager: InMemoryLeaseManager | None = None,
+        lease_manager: LeaseManager | None = None,
         recovery: RecoveryCoordinator | None = None,
         worker_id: str = "worker-runtime",
         verification_checks: VerificationCheckFactory | None = None,
@@ -73,16 +74,49 @@ class WorkerRuntime:
             for task in self.repository.list_tasks(limit=50)
             if task.status in self.ELIGIBLE_STATUSES
         ]
-        if not candidates:
-            return None
+        for candidate in candidates:
+            try:
+                lease = self.lease_manager.acquire(candidate.task_id, self.worker_id)
+            except LeaseError:
+                continue
 
-        task_id = candidates[0].task_id
-        lease = self.lease_manager.acquire(task_id, self.worker_id)
+            return self._run_with_lease(lease)
+
+        return None
+
+    def _run_with_lease(self, lease: WorkerLease) -> WorkerRunResult:
+        heartbeat_stop = Event()
+        current_lease = lease
+
+        def heartbeat() -> None:
+            nonlocal current_lease
+            interval = max(1.0, self._lease_interval_seconds() / 3)
+            while not heartbeat_stop.wait(interval):
+                try:
+                    current_lease = self.lease_manager.heartbeat(current_lease)
+                except LeaseError:
+                    heartbeat_stop.set()
+                    return
+
+        heartbeat_thread = Thread(
+            target=heartbeat,
+            name=f"autoworker-heartbeat-{self.worker_id}",
+            daemon=True,
+        )
+        heartbeat_thread.start()
         try:
-            task = self.repository.get(task_id)
+            task = self.repository.get(lease.task_id)
             return self._run_task(task)
         finally:
-            self.lease_manager.release(lease)
+            heartbeat_stop.set()
+            heartbeat_thread.join(timeout=max(1.0, self._lease_interval_seconds() / 2))
+            try:
+                self.lease_manager.release(current_lease)
+            except LeaseError:
+                pass
+
+    def _lease_interval_seconds(self) -> float:
+        return float(getattr(self.lease_manager, "lease_seconds", 30))
 
     def _run_task(self, task: Task) -> WorkerRunResult:
         if task.status == TaskStatus.CREATED:
