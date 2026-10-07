@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 
 from packages.browser.contracts import BrowserLocator
+from packages.tools.browser import BrowserElement
 from packages.browser.mock import MockBrowserAdapter
 
 
