@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 4 — Autonomous capability layer
+Phase 5 — Durable distributed execution layer
 
 ## Completed
 - Production-oriented repository, architecture, safety state machine, typed tool boundaries, persistence foundation, worker orchestration, verification, evidence, audit, browser/document/ERP boundaries, React dashboard, Docker, and CI.
@@ -9,7 +9,7 @@ Phase 4 — Autonomous capability layer
 - Task/action identity, executable action status, policy binding, terminal-state, verification, and idempotency invariants are enforced at the domain boundary.
 - Worker execution records started/completed timestamps and fails actions explicitly on executor errors.
 - Side-effect classification is authoritative from the registered ToolDefinition.
-- Process-local idempotency reuse prevents duplicate execution inside a worker process; durable cross-process idempotency remains a production follow-up.
+- Durable idempotency claims now prevent duplicate side-effect execution across worker processes; abandoned claims are intentionally conservative and require reconciliation rather than blind replay.
 - Playwright navigation is origin-allowlisted and browser element IDs are constrained to safe selector tokens.
 - API readiness fails closed on database errors; request IDs are propagated; production CORS defaults to no origins and rejects wildcard origins.
 - Task creation produces durable audit history; dashboard timeline reads persisted task events rather than a static demo stream.
@@ -21,15 +21,14 @@ Phase 4 — Autonomous capability layer
 
 ## Current Hardening Review
 - Durable idempotency is still process-local and should be replaced by an atomic database-backed claim/complete design before multi-worker production.
-- Orchestrator EventBus events are not yet all persisted automatically; a durable outbox/event sink is the next audit architecture step.
-- Approval lookup currently scans task JSON and should become a normalized indexed approval projection at production scale.
-- `apps/worker` still needs a durable runtime loop around repository + lease + orchestrator.
+- Orchestrator events can now be persisted through the durable event-outbox sink; delivery is retryable and consumers can deduplicate by event ID.
+- The reference worker runtime can now use DB-backed leases with heartbeat renewal and can run continuously through the WorkerLoop.
+- Approval lookup is now a normalized indexed projection.
 - Browser/document layers contain legacy compatibility modules that should be consolidated only after import usage is mapped.
 - Full end-to-end validation still needs a real PostgreSQL execution path and controlled browser integration.
 
 ## Next
-- Finish durable execution coordination (atomic idempotency + worker loop + outbox).
-- Complete real approval/audit/evidence task detail flows in the web console.
+- Complete real approval/audit/evidence task-detail flows in the web console.
 - Add end-to-end PostgreSQL/browser workflow tests.
 - Then deploy with a dedicated AutoWorker database and verify production health before final release.
 

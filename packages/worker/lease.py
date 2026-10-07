@@ -2,7 +2,19 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from typing import Protocol
 from uuid import UUID, uuid4
+
+
+class LeaseManager(Protocol):
+    def acquire(self, task_id: UUID, worker_id: str) -> "WorkerLease":
+        ...
+
+    def heartbeat(self, lease: "WorkerLease") -> "WorkerLease":
+        ...
+
+    def release(self, lease: "WorkerLease") -> None:
+        ...
 
 
 class LeaseError(RuntimeError):
