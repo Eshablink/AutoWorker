@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class Settings(BaseModel):
     redis_url: str | None = None
+    api_token: str | None = None
     database_url: str = Field(
         default="sqlite:///./autoworker.db",
         min_length=1,
