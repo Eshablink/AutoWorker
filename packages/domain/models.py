@@ -147,6 +147,11 @@ class ApprovalRequest(BaseModel):
     approval_comment: Optional[str] = None
     created_at: datetime = Field(default_factory=default_utc_now)
     decided_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
+
+    @property
+    def expired(self) -> bool:
+        return self.expires_at is not None and datetime.now(timezone.utc) >= self.expires_at
 
     @field_validator("requested_action_name", "tool_id", "reason_required")
     @classmethod
