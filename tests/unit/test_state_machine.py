@@ -205,3 +205,16 @@ def test_running_transition_rejects_denied_policy(sample_task):
     task = _ready(sample_task)
     with pytest.raises(InvariantViolationError, match="denied execution"):
         TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")
+
+
+def test_running_transition_rejects_action_without_policy_decision(sample_task):
+    action = TaskAction(
+        task_id=sample_task.task_id,
+        step_number=1,
+        tool_id="browser_click",
+        decision_summary="Click button",
+    )
+    sample_task.actions = [action]
+    task = _ready(sample_task)
+    with pytest.raises(InvariantViolationError, match="without a PolicyDecision"):
+        TaskStateMachine.transition(task, TaskStatus.RUNNING, "WORKER")
