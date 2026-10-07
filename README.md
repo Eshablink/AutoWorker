@@ -458,11 +458,11 @@ AutoWorker already has a substantial production-oriented core: explicit task lif
 
 ### What we are building next
 
-1. **Durable cross-process idempotency** — make side-effect protection reliable across multiple worker processes.
-2. **Durable event outbox** — make operational events resilient and consistently delivered.
-3. **Multi-worker dispatch** — move from the reference runtime toward real queued/distributed execution.
-4. **Broader end-to-end computer-use coverage** — exercise controlled browser workflows against PostgreSQL-backed state.
-5. **Production deployment + observability** — harden runtime configuration, health checks, monitoring, and deployment operations.
+1. **Operator-grade approval, audit, and evidence UX** — make risky decisions and execution history easier to inspect.
+2. **Queue-backed multi-worker dispatch** — extend the durable worker foundation into real queued distributed execution.
+3. **Broader end-to-end computer-use coverage** — exercise controlled browser workflows against PostgreSQL-backed state.
+4. **Production observability** — add metrics, structured telemetry, and stronger runtime diagnostics.
+5. **Dedicated deployment validation** — finish isolated infrastructure, health checks, and release verification.
 
 This is deliberate engineering scope, not a claim that every production concern is already solved.
 
