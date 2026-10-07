@@ -2,11 +2,10 @@ from uuid import uuid4
 
 from packages.tools.browser import BrowserAction, BrowserElement
 from packages.tools.playwright import PlaywrightBrowserSession
+from playwright.sync_api import sync_playwright
 
 
 def test_controlled_browser_executes_fill_and_click():
-    from playwright.sync_api import sync_playwright
-
     with sync_playwright() as runtime:
         browser = runtime.chromium.launch()
         page = browser.new_page()
