@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -14,11 +14,60 @@ from apps.api.database import get_task_repository
 router = APIRouter(prefix="/approvals", tags=["approvals"])
 
 
+
+class PendingApprovalResponse(BaseModel):
+    approval_id: UUID
+    task_id: UUID
+    action_id: UUID
+    goal: str
+    requested_action_name: str
+    tool_id: str
+    payload_summary: dict
+    risk_level: str
+    reason_required: str
+    status: ApprovalStatus
+    created_at: datetime
+    expires_at: datetime | None
+    expired: bool
+
 class ApprovalDecision(BaseModel):
     status: ApprovalStatus
     comment: str | None = None
     approver_id: str | None = None
 
+
+
+@router.get("")
+def list_pending_approvals(
+    limit: int = Query(default=50, ge=1, le=100),
+    repository: SqlAlchemyTaskRepository = Depends(get_task_repository),
+) -> list[PendingApprovalResponse]:
+    results: list[PendingApprovalResponse] = []
+    for task in repository.list_pending_approvals(limit=limit):
+        for action in task.actions:
+            approval = action.approval_request
+            if approval is None or approval.status != ApprovalStatus.PENDING:
+                continue
+            results.append(
+                PendingApprovalResponse(
+                    approval_id=approval.approval_id,
+                    task_id=task.task_id,
+                    action_id=action.action_id,
+                    goal=task.goal,
+                    requested_action_name=approval.requested_action_name,
+                    tool_id=approval.tool_id,
+                    payload_summary=approval.payload_summary,
+                    risk_level=approval.risk_level.value,
+                    reason_required=approval.reason_required,
+                    status=approval.status,
+                    created_at=approval.created_at,
+                    expires_at=approval.expires_at,
+                    expired=approval.expired,
+                )
+            )
+            if len(results) >= limit:
+                return results
+    return results
 
 @router.post("/{approval_id}")
 def decide_approval(
