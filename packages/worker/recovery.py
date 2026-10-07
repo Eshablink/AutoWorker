@@ -23,9 +23,9 @@ class RecoveryCoordinator:
             raise ValueError(f"Task {task.task_id} current_step_index is out of bounds.")
 
         action = task.actions[task.current_step_index]
-        if action.status != ActionStatus.RUNNING:
+        if action.status not in {ActionStatus.RUNNING, ActionStatus.FAILED}:
             raise ValueError(
-                f"Task {task.task_id} current action must be RUNNING before recovery."
+                f"Task {task.task_id} current action must be RUNNING or FAILED before recovery."
             )
 
         if action.is_side_effecting and not (
