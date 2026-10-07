@@ -10,7 +10,7 @@ from typing import Callable, Protocol
 from uuid import UUID
 
 from packages.audit.events import EventType
-from packages.domain.models import ActionStatus, AuditEvent, Task, TaskStatus
+from packages.domain.models import AuditEvent, Task, TaskStatus
 from packages.domain.repository import TaskRepository
 from packages.domain.state import TaskStateMachine
 from packages.verification.engine import VerificationCheck
