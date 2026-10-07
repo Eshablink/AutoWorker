@@ -1,6 +1,6 @@
 """SQLAlchemy persistence adapter with normalized operational projections."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import JSON, DateTime, Integer, String, Text, select
@@ -150,7 +150,38 @@ class SqlAlchemyTaskRepository:
             )
         )
         self._sync_approval_projection(task)
+        self._sync_dispatch_queue(task)
         return task
+
+    def _sync_dispatch_queue(self, task: Task) -> None:
+        row = self.session.get(DispatchQueueRecord, str(task.task_id))
+        eligible = {
+            TaskStatus.CREATED,
+            TaskStatus.READY,
+            TaskStatus.RUNNING,
+            TaskStatus.RECOVERING,
+        }
+        if task.status in eligible:
+            if row is None:
+                self._enqueue_dispatch_task(task)
+            elif row.state in {"BLOCKED", "DONE"}:
+                row.state = "READY"
+                row.available_at = task.updated_at
+                row.claimed_by = None
+                row.claimed_at = None
+                row.last_error = None
+            return
+
+        if row is None or row.state != "CLAIMED":
+            return
+        if task.status == TaskStatus.WAITING_APPROVAL:
+            row.state = "BLOCKED"
+        elif task.status in {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED}:
+            row.state = "DONE"
+            row.completed_at = task.updated_at
+        row.claimed_by = None
+        row.claimed_at = None
+
 
     def _enqueue_dispatch_task(self, task: Task) -> None:
         eligible = {
@@ -179,7 +210,7 @@ class SqlAlchemyTaskRepository:
                 DispatchQueueRecord(
                     task_id=str(task_id),
                     state="READY",
-                    available_at=datetime.utcnow(),
+                    available_at=datetime.now(timezone.utc),
                     attempts=0,
                 )
             )
