@@ -91,6 +91,11 @@ async def request_id_middleware(request: Request, call_next):
     return response
 
 
+@app.get("/", tags=["system"])
+def root() -> dict[str, str]:
+    return {"service": "autoworker-api", "status": "online", "health": "/health", "ready": "/ready"}
+
+
 @app.get("/health", tags=["system"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "autoworker-api"}
