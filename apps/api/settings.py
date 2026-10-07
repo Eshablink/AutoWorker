@@ -35,6 +35,7 @@ class Settings(BaseModel):
 
         return cls(
             redis_url=os.getenv("REDIS_URL") or None,
+            api_token=os.getenv("AUTOWORKER_API_TOKEN") or None,
             database_url=os.getenv("DATABASE_URL", "sqlite:///./autoworker.db"),
             environment=environment,
             evidence_root=os.getenv("EVIDENCE_ROOT", "./data/evidence"),
