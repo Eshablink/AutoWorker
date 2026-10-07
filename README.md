@@ -13,7 +13,7 @@
 [![PostgreSQL](https://img.shields.io/badge/Data-PostgreSQL%2017-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Playwright](https://img.shields.io/badge/Browser-Playwright-45BA63?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Repo Size](https://img.shields.io/github/repo-size/Eshablink/AutoWorker)](https://github.com/Eshablink/AutoWorker)
-[![Phase](https://img.shields.io/badge/phase-5%20durable%20execution-6f42c1)](PROGRESS.md)
+[![Phase](https://img.shields.io/badge/phase-6%20operator%20%26%20E2E-6f42c1)](PROGRESS.md)
 
 [**Architecture**](ARCHITECTURE.md) · [**Project Brief**](PROJECT_BRIEF.md) · [**Decisions**](DECISIONS.md) · [**Progress**](PROGRESS.md)
 
@@ -95,6 +95,7 @@ The model is useful, but it is not the final authority over consequential side e
 | 🐳 **Infrastructure** | Docker Compose development stack with pgvector PostgreSQL |
 | 🧪 **Quality** | Pytest, Ruff, frontend production build, migration validation in CI |
 | 📬 **Durable coordination** | Database idempotency claims, task leases + heartbeats, event outbox |
+| 🖥️ **Operator UX** | Task detail, approvals, evidence, verification, worker/runtime views |
 
 ---
 
@@ -197,6 +198,7 @@ Safety is treated as an **execution boundary**, not merely as a prompt instructi
 | Persistence | ✅ Implemented | SQLAlchemy, Alembic, PostgreSQL support, approval projection |
 | Worker runtime | ✅ Implemented | Reference runtime, durable leases, heartbeat renewal, recovery, verification lifecycle |
 | Durable execution coordination | ✅ Implemented | Atomic idempotency claims, DB-backed leases, retryable event outbox |
+| Controlled browser E2E | ✅ Implemented | Chromium CI smoke + PostgreSQL invoice/ERP integration path |
 | Browser / ERP / document boundaries | ✅ Implemented | Injectable adapters and controlled integrations |
 | Audit / evidence | ✅ Implemented | Durable audit foundation + evidence store |
 | Operations dashboard | ✅ Implemented | React + TypeScript task/audit views |
@@ -458,8 +460,7 @@ AutoWorker already has a substantial production-oriented core: explicit task lif
 
 ### What we are building next
 
-1. **Operator-grade approval, audit, and evidence UX** — make risky decisions and execution history easier to inspect.
-2. **Queue-backed multi-worker dispatch** — extend the durable worker foundation into real queued distributed execution.
+1. **Queue-backed multi-worker dispatch** — extend the durable worker foundation into real queued distributed execution.
 3. **Broader end-to-end computer-use coverage** — exercise controlled browser workflows against PostgreSQL-backed state.
 4. **Production observability** — add metrics, structured telemetry, and stronger runtime diagnostics.
 5. **Dedicated deployment validation** — finish isolated infrastructure, health checks, and release verification.
@@ -482,6 +483,8 @@ This is deliberate engineering scope, not a claim that every production concern 
 [✓] Atomic durable idempotency
 [✓] Durable event outbox
 [✓] Database-backed worker leases + heartbeat
+[✓] Operator-grade task / approval / evidence console
+[✓] Controlled browser + PostgreSQL E2E quality gate
 [ ] Full multi-worker queue dispatch
 [ ] End-to-end controlled-browser demo
 [ ] Production deployment + observability
@@ -533,7 +536,7 @@ For architecture-level changes, update the relevant documentation in <code>ARCHI
 
 AutoWorker is **not yet a fully autonomous production deployment**.
 
-The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Queue-backed multi-worker dispatch, broader end-to-end computer-use coverage, production observability, and deployment validation remain roadmap work.
+The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Queue-backed multi-worker dispatch, deeper observability, and deployment validation remain roadmap work.
 
 ---
 
