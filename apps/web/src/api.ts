@@ -141,15 +141,30 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    let message = `Request failed: ${response.status}`;
-    try {
-      const body = (await response.json()) as { detail?: string };
-      message = body.detail ?? message;
-    } catch {
-      const text = await response.text();
-      if (text) message = text;
+    const fallback = `Request failed: ${response.status} ${response.statusText}`.trim();
+    const rawBody = await response.text();
+
+    if (rawBody) {
+      try {
+        const body = JSON.parse(rawBody) as { detail?: string; message?: string };
+        const detail =
+          typeof body.detail === "string"
+            ? body.detail
+            : typeof body.message === "string"
+              ? body.message
+              : undefined;
+
+        throw new Error(detail ?? fallback);
+      } catch (error) {
+        if (error instanceof Error && error.message !== "Unexpected end of JSON input") {
+          throw error;
+        }
+      }
+
+      throw new Error(rawBody);
     }
-    throw new Error(message);
+
+    throw new Error(fallback);
   }
 
   return response.json() as Promise<T>;
