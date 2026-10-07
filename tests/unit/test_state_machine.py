@@ -88,7 +88,7 @@ def test_side_effecting_action_requires_idempotency_key(sample_task):
         step_number=1,
         tool_id="execute_refund",
         is_side_effecting=True,
-        idempotency_key="",
+        idempotency_key=None,
         decision_summary="Execute refund in Stripe",
     )
     sample_task.actions = [action]
