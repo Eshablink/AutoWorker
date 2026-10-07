@@ -1,4 +1,3 @@
-from threading import Event
 from uuid import uuid4
 
 import pytest
@@ -93,3 +92,12 @@ def test_event_bus_can_persist_events_to_outbox(session_factory):
     bus.publish(event)
 
     assert store.claim_batch(limit=10)[0].event_id == event.event_id
+
+
+def test_two_workers_cannot_claim_same_durable_idempotency_key(session_factory):
+    first_store = SqlAlchemyIdempotencyStore(session_factory)
+    second_store = SqlAlchemyIdempotencyStore(session_factory)
+
+    assert first_store.claim("shared-write-1") is None
+    with pytest.raises(IdempotencyInProgressError):
+        second_store.claim("shared-write-1")
