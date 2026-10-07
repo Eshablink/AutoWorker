@@ -50,3 +50,8 @@ Redis Streams improves worker delivery latency and cross-process distribution, b
 **Status:** Accepted
 
 A worker ACKs a Redis message only after the runtime returns a result. Processing exceptions intentionally leave the message pending so Redis consumer-group reclamation can retry delivery. Database leases and idempotency remain the final duplicate-execution safety boundaries.
+
+## ADR-011 — Broker transport failures must not create false success
+**Status:** Accepted
+
+Redis is an optimization layer around durable dispatch, not the source of truth. A worker therefore ACKs a broker message only after the runtime returns a result, and ACK failures are isolated from the successful-result callback. The durable SQL queue remains the recovery path when Redis delivery or acknowledgement is unavailable.
