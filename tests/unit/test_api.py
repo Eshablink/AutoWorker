@@ -1,6 +1,18 @@
 from fastapi.testclient import TestClient
 
 from apps.api.main import app
+from packages.domain.models import (
+    ActionStatus,
+    ApprovalRequest,
+    PolicyDecision,
+    PolicyOutcome,
+    Task,
+    TaskAction,
+    TaskStatus,
+    ToolRisk,
+)
+from packages.persistence.memory import InMemoryTaskRepository
+
 from apps.api.database import get_task_repository
 
 
@@ -30,18 +42,6 @@ def test_cors_allows_configured_local_frontend():
     )
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
-
-from packages.domain.models import (
-    ActionStatus,
-    ApprovalRequest,
-    PolicyDecision,
-    PolicyOutcome,
-    Task,
-    TaskAction,
-    TaskStatus,
-    ToolRisk,
-)
-from packages.persistence.memory import InMemoryTaskRepository
 
 
 def test_operator_task_detail_exposes_actions(monkeypatch):
