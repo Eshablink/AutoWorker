@@ -110,6 +110,8 @@ function App() {
     try {
       if (!preserveError) setError(null);
       const [nextTasks, nextApprovals] = await Promise.all([listTasks(), listPendingApprovals()]);
+      // A successful poll clears any transient connection error from an earlier cold-start/request failure.
+      setError(null);
       setTasks(nextTasks);
       setApprovals(nextApprovals);
 
