@@ -17,6 +17,7 @@ from packages.domain.state import TaskStateMachine
 from packages.verification.engine import VerificationCheck
 from packages.worker.lease import InMemoryLeaseManager, LeaseError, LeaseManager, WorkerLease
 from packages.worker.orchestrator import TaskOrchestrator
+from packages.persistence.queue import TaskQueue
 from packages.worker.recovery import RecoveryCoordinator
 
 
@@ -57,6 +58,7 @@ class WorkerRuntime:
         worker_id: str = "worker-runtime",
         verification_checks: VerificationCheckFactory | None = None,
         lease_seconds: int = 30,
+        task_queue: TaskQueue | None = None,
     ) -> None:
         if not worker_id.strip():
             raise ValueError("worker_id cannot be empty.")
@@ -67,8 +69,26 @@ class WorkerRuntime:
         self.recovery = recovery or RecoveryCoordinator()
         self.worker_id = worker_id.strip()
         self.verification_checks = verification_checks or (lambda _task: [])
+        self.task_queue = task_queue
 
     def run_once(self) -> WorkerRunResult | None:
+        if self.task_queue is not None:
+            task_id = self.task_queue.claim_next(self.worker_id)
+            if task_id is None:
+                return None
+            try:
+                lease = self.lease_manager.acquire(task_id, self.worker_id)
+            except LeaseError as exc:
+                self.task_queue.release(task_id, delay_seconds=1, error=str(exc))
+                return None
+            try:
+                result = self._run_with_lease(lease)
+            except Exception as exc:
+                self.task_queue.release(task_id, delay_seconds=1, error=str(exc))
+                raise
+            self._settle_queue_item(result)
+            return result
+
         candidates = [
             task
             for task in self.repository.list_tasks(limit=50)
@@ -83,6 +103,16 @@ class WorkerRuntime:
             return self._run_with_lease(lease)
 
         return None
+
+    def _settle_queue_item(self, result: WorkerRunResult) -> None:
+        if self.task_queue is None:
+            return
+        if result.status == TaskStatus.WAITING_APPROVAL:
+            self.task_queue.block(result.task_id)
+        elif result.status in self.ELIGIBLE_STATUSES:
+            self.task_queue.release(result.task_id)
+        else:
+            self.task_queue.complete(result.task_id)
 
     def _run_with_lease(self, lease: WorkerLease) -> WorkerRunResult:
         heartbeat_stop = Event()
