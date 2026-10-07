@@ -76,10 +76,23 @@ class WorkerFleet:
                     # Do not ACK. Redis Streams will reclaim the pending message.
                     result = None
                 if result is not None:
-                    self.broker.acknowledge(message)
-                    BROKER_OPERATIONS.labels("delivery", "acknowledged").inc()
-                    if on_result is not None:
-                        on_result(result)
+                    try:
+                        self.broker.acknowledge(message)
+                    except Exception:
+                        BROKER_OPERATIONS.labels("acknowledge_loop", "error").inc()
+                        logger.exception(
+                            "broker_acknowledge_failed",
+                            extra={
+                                "worker_id": self.worker_id,
+                                "task_id": str(message.task_id),
+                                "broker_message_id": message.message_id,
+                                "outcome": "exception",
+                            },
+                        )
+                    else:
+                        BROKER_OPERATIONS.labels("delivery", "acknowledged").inc()
+                        if on_result is not None:
+                            on_result(result)
 
             now = time.monotonic()
             if now >= next_fallback:
