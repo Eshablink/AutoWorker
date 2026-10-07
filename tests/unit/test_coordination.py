@@ -121,3 +121,20 @@ def test_worker_loop_stops_cleanly_after_callback_requests_stop():
     )
 
     assert calls == [result]
+
+def test_durable_dispatch_queue_claim_release_and_complete(session_factory):
+    from packages.persistence.queue import SqlAlchemyTaskQueue
+
+    queue = SqlAlchemyTaskQueue(session_factory)
+    task_id = uuid4()
+    queue.enqueue(task_id)
+
+    assert queue.queue_depth() == 1
+    assert queue.claim_next("worker-a") == task_id
+    assert queue.queue_depth() == 0
+
+    queue.release(task_id, delay_seconds=0, error="transient")
+    assert queue.claim_next("worker-b") == task_id
+
+    queue.complete(task_id)
+    assert queue.claim_next("worker-c") is None
