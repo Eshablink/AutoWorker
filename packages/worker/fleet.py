@@ -34,9 +34,4 @@ class WorkerFleet:
                 self.broker.acknowledge(message)
 
     def _process(self, task_id: UUID) -> WorkerRunResult | None:
-        lease = self.runtime.lease_manager.acquire(task_id, self.worker_id)
-        try:
-            task = self.runtime.repository.get(task_id)
-            return self.runtime._run_task(task)
-        finally:
-            self.runtime.lease_manager.release(lease)
+        return self.runtime.run_task(task_id)
