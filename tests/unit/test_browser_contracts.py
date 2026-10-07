@@ -19,3 +19,17 @@ def test_closed_browser_rejects_operations():
     session.close()
     with pytest.raises(RuntimeError):
         session.observe()
+
+
+def test_browser_element_rejects_unsafe_selector_tokens():
+    import pytest
+
+    with pytest.raises(ValueError, match="safe selector token"):
+        BrowserElement(element_id='target"] *', role="button")
+
+
+def test_browser_element_rejects_blank_role():
+    import pytest
+
+    with pytest.raises(ValueError, match="role cannot be empty"):
+        BrowserElement(element_id="submit", role="   ")
