@@ -18,7 +18,48 @@ class TaskBroker(Protocol):
         ...
 
     def consume(self, worker_id: str, *, block_ms: int = 1000) -> BrokerMessage | None:
-        ...
+        if not worker_id.strip():
+            raise ValueError("worker_id cannot be empty.")
+        if block_ms < 1:
+            raise ValueError("block_ms must be positive.")
+
+        claimed = self.redis.xautoclaim(
+            self.stream_name,
+            self.group_name,
+            worker_id,
+            min_idle_time=60_000,
+            start_id="0-0",
+            count=1,
+        )
+        pending = claimed[1] if len(claimed) > 1 else []
+        if pending:
+            message_id, fields = pending[0]
+            raw_task_id = fields.get("task_id")
+            if raw_task_id is None:
+                raise ValueError("Broker message is missing task_id.")
+            if isinstance(raw_task_id, bytes):
+                raw_task_id = raw_task_id.decode()
+            return BrokerMessage(task_id=UUID(raw_task_id), message_id=message_id)
+
+        response = self.redis.xreadgroup(
+            self.group_name,
+            worker_id,
+            {self.stream_name: ">"},
+            count=1,
+            block=block_ms,
+        )
+        if not response:
+            return None
+
+        _, messages = response[0]
+        message_id, fields = messages[0]
+        raw_task_id = fields.get("task_id")
+        if raw_task_id is None:
+            raise ValueError("Broker message is missing task_id.")
+        if isinstance(raw_task_id, bytes):
+            raw_task_id = raw_task_id.decode()
+
+        return BrokerMessage(task_id=UUID(raw_task_id), message_id=message_id)
 
     def acknowledge(self, message: BrokerMessage) -> None:
         ...
