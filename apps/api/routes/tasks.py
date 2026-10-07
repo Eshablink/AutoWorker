@@ -7,9 +7,10 @@ from apps.api.database import get_task_repository
 from packages.domain.models import AuditEvent, Task, TaskStatus
 from packages.domain.repository import TaskNotFoundError
 from packages.observability.metrics import TASKS_CREATED
+from apps.api.auth import require_api_auth
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 
-router = APIRouter(prefix="/tasks", tags=["tasks"])
+router = APIRouter(prefix="/tasks", tags=["tasks"], dependencies=[Depends(require_api_auth)])
 
 
 class CreateTaskRequest(BaseModel):
