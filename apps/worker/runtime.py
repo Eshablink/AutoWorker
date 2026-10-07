@@ -14,8 +14,7 @@ from packages.domain.models import ActionStatus, AuditEvent, Task, TaskStatus
 from packages.domain.repository import TaskRepository
 from packages.domain.state import TaskStateMachine
 from packages.verification.engine import VerificationCheck
-from packages.worker.execution import ExecutionWorker
-from packages.worker.lease import InMemoryLeaseManager, WorkerLease
+from packages.worker.lease import InMemoryLeaseManager
 from packages.worker.orchestrator import TaskOrchestrator
 from packages.worker.recovery import RecoveryCoordinator
 
