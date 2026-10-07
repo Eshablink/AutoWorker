@@ -1,5 +1,7 @@
 """Task execution orchestration across policy, worker, and domain state."""
 
+from datetime import datetime, timedelta, timezone
+
 from packages.audit.events import EventBus, EventType, TaskEvent
 from packages.domain.models import ActionStatus, ApprovalRequest, PolicyOutcome, Task, TaskStatus
 from packages.domain.state import TaskStateMachine
@@ -65,6 +67,7 @@ class TaskOrchestrator:
                 payload_summary=action.tool_input,
                 risk_level=decision.risk_level,
                 reason_required=decision.reason,
+                expires_at=datetime.now(timezone.utc) + timedelta(minutes=15),
             )
             action.status = ActionStatus.WAITING_APPROVAL
             self.event_bus.publish(
