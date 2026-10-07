@@ -13,7 +13,7 @@
 [![PostgreSQL](https://img.shields.io/badge/Data-PostgreSQL%2017-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Playwright](https://img.shields.io/badge/Browser-Playwright-45BA63?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Repo Size](https://img.shields.io/github/repo-size/Eshablink/AutoWorker)](https://github.com/Eshablink/AutoWorker)
-[![Phase](https://img.shields.io/badge/phase-8%20worker%20fleet-6f42c1)](PROGRESS.md)
+[![Phase](https://img.shields.io/badge/phase-10%20observability%20%2B%20broker-6f42c1)](PROGRESS.md)
 
 [**Architecture**](ARCHITECTURE.md) · [**Project Brief**](PROJECT_BRIEF.md) · [**Decisions**](DECISIONS.md) · [**Progress**](PROGRESS.md)
 
@@ -96,8 +96,8 @@ The model is useful, but it is not the final authority over consequential side e
 | 🧪 **Quality** | Pytest, Ruff, frontend production build, migration validation in CI |
 | 📬 **Durable coordination** | Database idempotency claims, task leases + heartbeats, event outbox |
 | 🖥️ **Operator UX** | Task detail, approvals, evidence, verification, worker/runtime views |
-| 📈 **Observability** | Prometheus metrics, request timing, structured JSON request logs |
-| 🛰️ **Worker Fleet** | Redis Streams consumer groups + durable SQL coordination |
+| 📈 **Observability** | Prometheus metrics, request timing, worker duration, approval latency, structured JSON correlation |
+| 🛰️ **Worker Fleet** | Redis Streams consumer groups + stale-message reclaim + durable SQL fallback |
 
 ---
 
@@ -204,8 +204,8 @@ Safety is treated as an **execution boundary**, not merely as a prompt instructi
 | Browser / ERP / document boundaries | ✅ Implemented | Injectable adapters and controlled integrations |
 | Audit / evidence | ✅ Implemented | Durable audit foundation + evidence store |
 | Operations dashboard | ✅ Implemented | React + TypeScript task/audit views |
-| Durable distributed coordination | 🚧 Next | Cross-process idempotency, outbox, multi-worker dispatch |
-| Production deployment | 🚧 Next | Deployment hardening and observability |
+| Durable distributed coordination | ✅ Implemented | Atomic idempotency, leases, outbox, dispatch queue |
+| Production deployment | 🚧 Next | Dedicated infrastructure and final release validation |
 
 ---
 
@@ -566,7 +566,7 @@ Execution → Verification → Audit
 
 AutoWorker is **not yet a fully autonomous production deployment**.
 
-The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Broker authentication/TLS/retention hardening, deeper worker-level observability, and deployment validation remain roadmap work.
+The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Production deployment validation remains roadmap work; broker configuration, reclaim controls, queue fallback behavior, worker metrics, and request correlation are now covered by explicit runtime controls.
 
 ---
 

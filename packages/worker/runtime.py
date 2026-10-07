@@ -6,6 +6,8 @@ repository from a long-running worker process.
 """
 
 from dataclasses import dataclass
+import logging
+import time
 from threading import Event, Thread
 from typing import Callable, Protocol
 from uuid import UUID
@@ -19,6 +21,7 @@ from packages.worker.lease import InMemoryLeaseManager, LeaseError, LeaseManager
 from packages.worker.orchestrator import TaskOrchestrator
 from packages.persistence.queue import TaskQueue
 from packages.worker.recovery import RecoveryCoordinator
+from packages.observability.metrics import DISPATCH_QUEUE_DEPTH, WORKER_QUEUE_CLAIMS, WORKER_RUN_DURATION, WORKER_RUNS
 
 
 class TaskPlanner(Protocol):
@@ -35,6 +38,9 @@ class WorkerRunResult:
     progressed: bool
     stage: str
     error: str | None = None
+
+
+logger = logging.getLogger("autoworker.worker")
 
 
 class WorkerRuntime:
@@ -75,11 +81,14 @@ class WorkerRuntime:
         if self.task_queue is not None:
             task_id = self.task_queue.claim_next(self.worker_id)
             if task_id is None:
+                self._record_queue_depth()
                 return None
             try:
                 lease = self.lease_manager.acquire(task_id, self.worker_id)
             except LeaseError as exc:
+                WORKER_QUEUE_CLAIMS.labels("lease_conflict").inc()
                 self.task_queue.release(task_id, delay_seconds=1, error=str(exc))
+                self._record_queue_depth()
                 return None
             try:
                 result = self._run_with_lease(lease)
@@ -87,6 +96,7 @@ class WorkerRuntime:
                 self.task_queue.release(task_id, delay_seconds=1, error=str(exc))
                 raise
             self._settle_queue_item(result)
+            self._record_queue_depth()
             return result
 
         candidates = [
@@ -126,6 +136,14 @@ class WorkerRuntime:
             self.task_queue.release(result.task_id)
         else:
             self.task_queue.complete(result.task_id)
+        self._record_queue_depth()
+
+    def _record_queue_depth(self) -> None:
+        if self.task_queue is None:
+            return
+        depth_fn = getattr(self.task_queue, "queue_depth", None)
+        if callable(depth_fn):
+            DISPATCH_QUEUE_DEPTH.set(int(depth_fn()))
 
     def _run_with_lease(self, lease: WorkerLease) -> WorkerRunResult:
         heartbeat_stop = Event()
@@ -147,9 +165,36 @@ class WorkerRuntime:
             daemon=True,
         )
         heartbeat_thread.start()
+        started = time.perf_counter()
         try:
             task = self.repository.get(lease.task_id)
-            return self._run_task(task)
+            result = self._run_task(task)
+            outcome = "progressed" if result.progressed else "idle"
+            WORKER_RUNS.labels(result.stage, result.status.value, outcome).inc()
+            WORKER_RUN_DURATION.labels(result.stage).observe(time.perf_counter() - started)
+            logger.info(
+                "worker_run",
+                extra={
+                    "task_id": str(result.task_id),
+                    "worker_id": self.worker_id,
+                    "stage": result.stage,
+                    "status": result.status.value,
+                    "outcome": outcome,
+                },
+            )
+            return result
+        except Exception:
+            WORKER_RUNS.labels("unknown", "ERROR", "exception").inc()
+            WORKER_RUN_DURATION.labels("unknown").observe(time.perf_counter() - started)
+            logger.exception(
+                "worker_run_failed",
+                extra={
+                    "task_id": str(lease.task_id),
+                    "worker_id": self.worker_id,
+                    "outcome": "exception",
+                },
+            )
+            raise
         finally:
             heartbeat_stop.set()
             heartbeat_thread.join(timeout=max(1.0, self._lease_interval_seconds() / 2))

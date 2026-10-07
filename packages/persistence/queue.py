@@ -8,6 +8,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from packages.observability.metrics import DISPATCH_QUEUE_DEPTH, WORKER_QUEUE_CLAIMS
 from packages.persistence.sqlalchemy import DispatchQueueRecord
 
 
@@ -102,6 +103,8 @@ class SqlAlchemyTaskQueue:
 
             row = session.execute(stmt).scalar_one_or_none()
             if row is None:
+                WORKER_QUEUE_CLAIMS.labels("empty").inc()
+                self._record_depth(session)
                 return None
 
             row.state = self.CLAIMED
@@ -109,7 +112,17 @@ class SqlAlchemyTaskQueue:
             row.claimed_at = now
             row.attempts += 1
             session.commit()
+            WORKER_QUEUE_CLAIMS.labels("claimed").inc()
+            self._record_depth(session)
             return UUID(row.task_id)
+
+    def _record_depth(self, session: Session) -> None:
+        depth = session.scalar(
+            select(func.count()).select_from(DispatchQueueRecord).where(
+                DispatchQueueRecord.state == self.READY
+            )
+        ) or 0
+        DISPATCH_QUEUE_DEPTH.set(int(depth))
 
     def release(
         self,
@@ -131,6 +144,7 @@ class SqlAlchemyTaskQueue:
                 )
             )
             session.commit()
+            self._record_depth(session)
 
     def block(self, task_id: UUID) -> None:
         with self.session_factory() as session:
@@ -140,6 +154,7 @@ class SqlAlchemyTaskQueue:
                 .values(state=self.BLOCKED, claimed_by=None, claimed_at=None)
             )
             session.commit()
+            self._record_depth(session)
 
     def complete(self, task_id: UUID) -> None:
         with self.session_factory() as session:
@@ -154,13 +169,16 @@ class SqlAlchemyTaskQueue:
                 )
             )
             session.commit()
+            self._record_depth(session)
 
     def queue_depth(self) -> int:
         with self.session_factory() as session:
-            return int(
+            depth = int(
                 session.scalar(
                     select(func.count()).select_from(DispatchQueueRecord).where(
                         DispatchQueueRecord.state == self.READY
                     )
                 ) or 0
             )
+            DISPATCH_QUEUE_DEPTH.set(depth)
+            return depth

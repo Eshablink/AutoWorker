@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 9 — Production security readiness
+Phase 10 — Observability + broker hardening
 
 ## Completed
 - Production-oriented repository, architecture, safety state machine, typed tool boundaries, persistence foundation, worker orchestration, verification, evidence, audit, browser/document/ERP boundaries, React dashboard, Docker, and CI.
@@ -24,6 +24,10 @@ Phase 9 — Production security readiness
 - Redis Streams transport now supports consumer groups, worker distribution, and stale pending-message reclamation while SQL remains authoritative.
 - Production task, event, and approval APIs now enforce bearer-token authentication; the operator console can send a bearer token when configured.
 - Readiness now checks the configured Redis transport in addition to the database.
+- Redis stream/group names, pending reclaim threshold, retention bound, and consumer blocking interval are configurable instead of hard-coded.
+- Worker fleets now treat Redis as a low-latency dispatch hint and periodically fall back to the durable SQL queue, preventing missed hints or Redis outages from stalling execution.
+- Redis delivery errors are logged without ACKing the message, allowing Redis Streams pending-message reclamation to recover interrupted work.
+- Worker, queue, broker, approval-latency, and authentication metrics now expose operational depth beyond request-only telemetry; task/worker IDs are available in structured logs for correlation.
 - CI has continuously validated frontend builds and backend tests; the hardening branch is only considered merge-ready when its latest run is green.
 
 ## Current Hardening Review
@@ -32,12 +36,11 @@ Phase 9 — Production security readiness
 - The reference worker runtime can now use DB-backed leases with heartbeat renewal and can run continuously through the WorkerLoop.
 - Approval lookup is now a normalized indexed projection.
 - Browser/document layers contain legacy compatibility modules that should be consolidated only after import usage is mapped.
-- Production deployment and broker hardening remain before final release.
+- Production deployment and isolated infrastructure verification remain before final release.
 
 ## Next
-- Harden Redis transport for production (authentication, TLS, retention, operational controls).
-- Add deeper worker-level metrics and trace correlation.
-- Then deploy with a dedicated AutoWorker database and verify production health before final release.
+- Deploy with a dedicated AutoWorker database and verify production health, authentication, CORS, Redis connectivity, worker execution, and observability end-to-end.
+- Only after production verification, document the release posture and remove any remaining deployment-specific placeholders.
 
 ## Rule
 Update this file after each meaningful milestone. Do not mark work complete until validated.
