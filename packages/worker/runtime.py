@@ -104,6 +104,19 @@ class WorkerRuntime:
 
         return None
 
+    def run_task(self, task_id: UUID) -> WorkerRunResult | None:
+        """Run one explicitly dispatched task under the same safety boundaries as run_once()."""
+        try:
+            lease = self.lease_manager.acquire(task_id, self.worker_id)
+        except LeaseError:
+            return None
+
+        result = self._run_with_lease(lease)
+        if self.task_queue is not None:
+            self._settle_queue_item(result)
+        return result
+
+
     def _settle_queue_item(self, result: WorkerRunResult) -> None:
         if self.task_queue is None:
             return

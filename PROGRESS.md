@@ -1,7 +1,7 @@
 # AutoWorker Progress
 
 ## Current Phase
-Phase 7 — Distributed dispatch & observability
+Phase 8 — External worker fleet
 
 ## Completed
 - Production-oriented repository, architecture, safety state machine, typed tool boundaries, persistence foundation, worker orchestration, verification, evidence, audit, browser/document/ERP boundaries, React dashboard, Docker, and CI.
@@ -21,6 +21,7 @@ Phase 7 — Distributed dispatch & observability
 - Controlled browser E2E runs in CI against Chromium with PostgreSQL migrations and an invoice-to-ERP integration path.
 - Durable task dispatch queue coordinates worker claims on top of persistent leases, with blocked approval states and stale-claim recovery.
 - Prometheus request metrics, response timing headers, and structured JSON request logs provide an operational telemetry foundation.
+- Redis Streams transport now supports consumer groups, worker distribution, and stale pending-message reclamation while SQL remains authoritative.
 - CI has continuously validated frontend builds and backend tests; the hardening branch is only considered merge-ready when its latest run is green.
 
 ## Current Hardening Review
@@ -29,11 +30,11 @@ Phase 7 — Distributed dispatch & observability
 - The reference worker runtime can now use DB-backed leases with heartbeat renewal and can run continuously through the WorkerLoop.
 - Approval lookup is now a normalized indexed projection.
 - Browser/document layers contain legacy compatibility modules that should be consolidated only after import usage is mapped.
-- Production deployment and external broker-backed fleet validation remain before final release.
+- Production deployment and broker hardening remain before final release.
 
 ## Next
-- Extend the durable queue into an external broker-backed worker fleet.
 - Add deeper worker-level metrics and trace correlation.
+- Harden Redis transport for production (authentication, TLS, retention, operational controls).
 - Then deploy with a dedicated AutoWorker database and verify production health before final release.
 
 ## Rule

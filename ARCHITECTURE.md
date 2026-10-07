@@ -61,3 +61,7 @@ The persistent dispatch queue records task availability, attempts, claims, block
 
 ### Operational Telemetry
 The API exposes Prometheus-compatible metrics, response timing headers, and structured JSON request logs. HTTP metrics use normalized route templates to avoid high-cardinality path labels.
+
+## External Worker Fleet
+
+Redis Streams can serve as the external delivery transport for the worker fleet. Consumer groups distribute task notifications across worker processes, and stale pending messages can be reclaimed after an idle threshold. The SQL dispatch queue remains authoritative for durable task state; database leases remain authoritative for single-worker ownership.
