@@ -183,6 +183,10 @@ class TaskStateMachine:
             raise InvariantViolationError(
                 f"ApprovalRequest policy_decision_id '{approval.policy_decision_id}' does not match PolicyDecision ID '{policy.decision_id}'."
             )
+        if approval.expired:
+            raise InvariantViolationError(
+                f"Action {action.action_id} approval request has expired."
+            )
         if approval.status != ApprovalStatus.APPROVED:
             raise InvariantViolationError(
                 f"Action {action.action_id} approval request status is '{approval.status.value}', expected 'APPROVED'."
