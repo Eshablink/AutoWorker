@@ -1,6 +1,6 @@
 <div align="center">
 
-# AutoWorker
+# ⚙️ AutoWorker
 
 ### Autonomous AI Computer Worker Engine
 
@@ -9,74 +9,94 @@
 [![CI](https://github.com/Eshablink/AutoWorker/actions/workflows/ci.yml/badge.svg)](https://github.com/Eshablink/AutoWorker/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/Web-React%20%2B%20TypeScript-61DAFB?logo=react&logoColor=111827)](https://react.dev/)
-[![PostgreSQL](https://img.shields.io/badge/Data-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![React](https://img.shields.io/badge/Web-React%2019%20%2B%20TypeScript-61DAFB?logo=react&logoColor=111827)](https://react.dev/)
+[![PostgreSQL](https://img.shields.io/badge/Data-PostgreSQL%2017-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Playwright](https://img.shields.io/badge/Browser-Playwright-45BA63?logo=playwright&logoColor=white)](https://playwright.dev/)
+[![Repo Size](https://img.shields.io/github/repo-size/Eshablink/AutoWorker)](https://github.com/Eshablink/AutoWorker)
+
+[**Architecture**](ARCHITECTURE.md) · [**Project Brief**](PROJECT_BRIEF.md) · [**Decisions**](DECISIONS.md) · [**Progress**](PROGRESS.md)
 
 </div>
 
 ---
 
-## The idea
+## 🎯 What is AutoWorker?
 
 Most AI demos stop at **"the model generated an answer."**
 
-AutoWorker is designed around a harder problem:
+AutoWorker tackles the harder engineering problem:
 
-> **How do you let an AI perform real operational work without letting the model directly control risky side effects?**
+> **How do you let an AI perform real operational work without giving the model unchecked control over risky side effects?**
 
-AutoWorker separates **reasoning, authorization, execution, recovery, verification, and evidence** into explicit layers.
+The platform separates **planning, authorization, execution, recovery, verification, and evidence** into explicit layers.
 
 ~~~text
-Goal
-  ↓
-Plan
-  ↓
-Policy
-  ├── DENY ───────────────→ Fail safely
-  ├── REQUIRE APPROVAL ──→ Human approval
-  └── ALLOW
-          ↓
-       Execute
-          ↓
-       Recover
-          ↓
-      Verify independently
-          ↓
-     Evidence + Audit
+Natural-language goal
+        ↓
+Structured plan
+        ↓
+Policy evaluation
+   ├─ DENY ───────────────→ Safe failure
+   ├─ APPROVAL ───────────→ Human decision
+   └─ ALLOW
+        ↓
+Controlled execution
+        ↓
+Recovery / retry
+        ↓
+Independent verification
+        ↓
+Evidence + audit trail
 ~~~
 
-The result is an agent architecture that is easier to inspect, test, secure, and evolve than an unconstrained "LLM + browser" loop.
+The result is an agent architecture designed to be **inspectable, testable, secure, and evolvable** rather than an unconstrained "LLM + browser" loop.
 
 ---
 
-## Recruiter snapshot
+## 🌟 Why AutoWorker stands out
 
-| Area | What AutoWorker demonstrates |
+| Capability | What it demonstrates |
 |---|---|
-| **AI / Agents** | Structured agent-provider boundary, typed tool proposals, bounded planning |
-| **Backend** | FastAPI control plane, domain-driven lifecycle state machine, dependency-injected services |
-| **Data** | PostgreSQL, SQLAlchemy, Alembic, optimistic concurrency, durable audit history |
-| **Automation** | Worker runtime, leases, bounded recovery, idempotency boundaries |
-| **Computer Use** | Browser observation/action contracts with Playwright adapter and navigation allowlists |
-| **Safety** | Deterministic policy engine, risk classification, HITL approvals, approval expiry |
-| **Reliability** | Verification as a separate lifecycle stage, explicit failure states, regression tests |
-| **Frontend** | React + TypeScript operations console with live task/audit views |
-| **Engineering** | CI, migration validation, Docker Compose, typed contracts, architecture decisions |
+| **Agentic AI** | Structured agent-provider boundary, typed action proposals, bounded planning |
+| **Backend engineering** | FastAPI control plane, dependency-injected services, explicit domain lifecycle |
+| **Data & persistence** | PostgreSQL, SQLAlchemy, Alembic, optimistic concurrency, normalized approval projection |
+| **Computer-use automation** | Browser contracts, Playwright adapter, navigation/origin allowlists |
+| **Safety engineering** | Deterministic policy, risk classification, HITL approvals, approval expiry |
+| **Reliability** | Explicit failures, bounded recovery, idempotency boundaries, independent verification |
+| **Auditability** | Durable task history, structured audit events, content-addressed evidence |
+| **Frontend** | React + TypeScript operations console with task and audit visibility |
+| **Engineering discipline** | CI, migration checks, regression coverage, Docker Compose, architectural decision records |
 
-### Why it stands out
+### The core design principle
 
-**AI is not trusted with side effects.** The model proposes; typed tools + deterministic policy decide.
+**LLM proposes → policy authorizes → tools execute → verification proves → audit records.**
 
-**Execution is stateful.** Tasks move through an explicit lifecycle instead of disappearing inside an opaque loop.
-
-**Success is verified.** A tool returning "click succeeded" is not treated as proof that the business outcome happened.
-
-**Evidence is first-class.** Audit events, verification results, and evidence references make autonomous work inspectable.
+The model is useful, but it is not the final authority over consequential side effects.
 
 ---
 
-## Architecture
+## 🧩 Feature map
+
+| Area | Included today |
+|---|---|
+| 🧠 **Planning** | Agent-provider contracts, structured task actions, plan validation boundaries |
+| 🛡️ **Policy** | Deterministic allow / deny / approval decisions with risk-aware tools |
+| 👷 **Workers** | Reference worker runtime, leases, heartbeats, bounded recovery |
+| 🌐 **Computer Use** | Browser action/observation contracts + Playwright adapter |
+| 📄 **Documents** | Document/OCR/invoice extraction contracts |
+| 🧾 **ERP Automation** | Typed ERP boundary + deterministic simulated ERP |
+| ✅ **Verification** | Separate verification lifecycle and composite verification engine |
+| 🔐 **Approvals** | Human-in-the-loop approval requests, expiry and safe rejection paths |
+| 🧠 **Memory** | Task-scoped memory contract and in-memory implementation |
+| 🧾 **Audit / Evidence** | Structured audit trail and content-addressed evidence storage |
+| 🖥️ **Operations UI** | React + TypeScript task monitoring and audit timeline |
+| 🗄️ **Persistence** | SQLite local default + PostgreSQL / SQLAlchemy / Alembic |
+| 🐳 **Infrastructure** | Docker Compose development stack with pgvector PostgreSQL |
+| 🧪 **Quality** | Pytest, Ruff, frontend production build, migration validation in CI |
+
+---
+
+## 🏗️ Architecture
 
 ~~~mermaid
 flowchart LR
@@ -87,9 +107,10 @@ flowchart LR
     R --> O[Worker Orchestrator]
     O --> P[Planner / Agent Provider]
     O --> S[Policy Engine]
-    S -->|allow| X[Typed Tool Executor]
-    S -->|approval| H[Human Approval]
+
     S -->|deny| F[Safe Failure]
+    S -->|approval| H[Human Approval]
+    S -->|allow| X[Typed Tool Executor]
 
     H --> X
     X --> B[Browser / Document / ERP Adapters]
@@ -104,104 +125,88 @@ flowchart LR
     R --> DB[(PostgreSQL)]
 ~~~
 
-### Core boundaries
+### Architectural boundaries
 
-- **Domain** — task lifecycle, safety invariants, typed contracts
-- **Agent / Planning** — structured proposals and bounded execution plans
-- **Policy** — deterministic authorization before consequential operations
-- **Worker** — execution, leases, recovery, orchestration
-- **Tools** — browser, document, ERP, and registry boundaries
-- **Verification** — independent proof of the expected resulting state
-- **Audit / Evidence** — durable operational trace without private chain-of-thought
-- **Web** — operational visibility and task control
+- **Domain** — task lifecycle, invariants, typed contracts
+- **Agent / Planning** — proposals and execution-plan boundaries
+- **Policy** — deterministic authorization before consequential execution
+- **Worker** — execution, leases, recovery, runtime coordination
+- **Tools** — browser, document, ERP, and registry contracts
+- **Verification** — independent checks of expected resulting state
+- **Audit / Evidence** — operational facts and evidence, without persisting private chain-of-thought
+- **Web** — task control and operational visibility
 
 ---
 
-## Flagship workflow
+## 🔄 Flagship workflow: Invoice → ERP
 
-The primary product story is an **invoice-to-ERP automation workflow**.
+The primary product story is a controlled **invoice-to-ERP automation flow**.
 
 ~~~text
 Natural-language goal
         ↓
-Structured plan
+Plan actions
         ↓
-Invoice extraction + validation
+Extract invoice data
         ↓
-Policy evaluation
+Validate required fields
         ↓
-Human approval for risky financial actions
+Evaluate action policy
         ↓
-Controlled ERP / browser execution
+Request human approval when required
         ↓
-Validation-error recovery
+Execute controlled ERP / browser action
         ↓
-Independent ERP verification
+Handle validation failure through bounded recovery
         ↓
-Evidence + audit trail
+Verify ERP state independently
+        ↓
+Persist evidence + audit trail
 ~~~
 
-A deterministic simulated ERP is included for development and testing so the workflow can be exercised without touching production financial systems.
+A deterministic simulated ERP is included for development and testing so the workflow can be exercised without touching a production financial system.
 
 ---
 
-## Safety model
+## 🔐 Safety model
 
-AutoWorker treats safety as an execution boundary, not a prompt instruction.
+Safety is treated as an **execution boundary**, not merely as a prompt instruction.
 
 | Safeguard | Purpose |
 |---|---|
-| **Deterministic policy** | Every executable action is evaluated before consequential execution |
-| **Risk-aware tools** | Registered tools declare risk and side-effect behavior |
-| **Human-in-the-loop** | High-risk operations require explicit approval |
+| **Deterministic policy** | Actions are evaluated before consequential execution |
+| **Risk-aware tools** | Tool definitions classify risk and side-effect behavior |
+| **Human approval** | High-risk operations require explicit human approval |
 | **Approval expiry** | Stale approvals cannot be reused |
-| **Idempotency** | Side-effecting operations require idempotency keys |
-| **Terminal-state locking** | Completed, failed, and cancelled tasks cannot be casually mutated |
-| **Independent verification** | Completion requires a successful verification result |
-| **No private chain-of-thought persistence** | Audits store structured operational facts instead |
-| **Browser origin allowlists** | Playwright navigation is restricted to approved origins |
-| **Optimistic concurrency** | Repository writes protect against stale task updates |
+| **Idempotency** | Side-effecting operations require idempotency boundaries |
+| **Terminal-state locking** | Terminal tasks cannot be casually mutated |
+| **Independent verification** | Completion requires a matching successful verification |
+| **No private reasoning persistence** | Audits contain operational facts, not private chain-of-thought |
+| **Browser origin allowlists** | Browser navigation is restricted to approved origins |
+| **Optimistic concurrency** | Stale repository writes are rejected |
 
 ---
 
-## What is implemented today
+## 📊 Implementation snapshot
 
-### Foundation
-
-- Pydantic v2 domain models
-- Explicit task state machine
-- Typed tool registry and policy engine
-- Agent-provider and plan-validation boundaries
-- PostgreSQL persistence with SQLAlchemy + Alembic
-- Optimistic concurrency controls
-- Durable audit-history foundation
-- Content-addressed evidence store
-
-### Autonomous execution
-
-- Worker execution boundary
-- Process-local idempotency guard
-- Worker leases and heartbeats
-- Bounded recovery coordinator
-- Reference worker runtime
-- Separate verification lifecycle
-- Simulated ERP invoice workflow
-- Playwright browser adapter
-
-### Product surface
-
-- FastAPI task / approval / audit endpoints
-- React + TypeScript operations dashboard
-- Live task polling
-- Persisted audit timeline
-- Docker Compose development stack
-- CI with backend tests, linting, frontend build, and PostgreSQL migration validation
+| Layer | Status | Notes |
+|---|---|---|
+| Domain & safety | ✅ Implemented | Typed models, lifecycle state machine, safety invariants |
+| Persistence | ✅ Implemented | SQLAlchemy, Alembic, PostgreSQL support, approval projection |
+| Worker runtime | ✅ Implemented | Reference runtime, leases, recovery, verification lifecycle |
+| Browser / ERP / document boundaries | ✅ Implemented | Injectable adapters and controlled integrations |
+| Audit / evidence | ✅ Implemented | Durable audit foundation + evidence store |
+| Operations dashboard | ✅ Implemented | React + TypeScript task/audit views |
+| Durable distributed coordination | 🚧 Next | Cross-process idempotency, outbox, multi-worker dispatch |
+| Production deployment | 🚧 Next | Deployment hardening and observability |
 
 ---
 
-## Quick start
+## 🚀 Quick start
 
-### Option 1 — Docker Compose
+### Option A — Docker Compose
+
+**Prerequisites:** Docker + Docker Compose.
 
 ~~~bash
 git clone https://github.com/Eshablink/AutoWorker.git
@@ -210,34 +215,39 @@ cd AutoWorker
 docker compose up --build
 ~~~
 
-Then open:
+Open:
 
-- **Operations console:** http://localhost:3000
-- **API:** http://localhost:8000
-- **Health:** http://localhost:8000/health
-- **Readiness:** http://localhost:8000/ready
+| Service | URL |
+|---|---|
+| **Operations console** | http://localhost:3000 |
+| **API** | http://localhost:8000 |
+| **Health** | http://localhost:8000/health |
+| **Readiness** | http://localhost:8000/ready |
 
-The API container runs database migrations before starting the application.
+The API container runs Alembic migrations before starting the application.
 
-### Option 2 — Run the backend and frontend separately
+### Option B — Backend + frontend locally
 
-Backend:
+#### Backend
 
 ~~~bash
 python -m venv .venv
+
 # Windows
-.venv\Scripts\activate
+.venv\\Scripts\\activate
+
 # macOS / Linux
 source .venv/bin/activate
 
 pip install -e ".[dev]"
+
 pytest -q
 ruff check packages apps tests
 
 uvicorn apps.api.main:app --reload
 ~~~
 
-Frontend:
+#### Frontend
 
 ~~~bash
 cd apps/web
@@ -245,23 +255,44 @@ npm install
 npm run dev
 ~~~
 
+The Vite development server defaults to port 5173.
+
 ---
 
-## API surface
+## ⚙️ Configuration
 
-| Endpoint | Purpose |
-|---|---|
-| <code>GET /health</code> | Liveness check |
-| <code>GET /ready</code> | Database readiness check |
-| <code>POST /tasks</code> | Create a task |
-| <code>GET /tasks</code> | List recent tasks |
-| <code>GET /tasks/{task_id}</code> | Read task state |
-| <code>GET /tasks/{task_id}/events</code> | Read persisted audit history |
-| <code>POST /approvals/{approval_id}</code> | Approve or reject a pending action |
+AutoWorker reads configuration from environment variables.
 
-### Example
+| Variable | Default | Purpose |
+|---|---|---|
+| <code>AUTOWORKER_ENV</code> | <code>development</code> | Runtime environment name |
+| <code>DATABASE_URL</code> | <code>sqlite:///./autoworker.db</code> | SQLAlchemy database connection |
+| <code>EVIDENCE_ROOT</code> | <code>./data/evidence</code> | Root directory for stored evidence |
+| <code>LLM_API_KEY</code> | unset | Optional agent/LLM provider credential |
+| <code>LLM_MODEL</code> | unset | Optional agent/LLM model identifier |
+| <code>CORS_ORIGINS</code> | <code>http://localhost:5173</code> outside production | Comma-separated explicit browser origins |
 
-Create a task:
+### Production CORS behavior
+
+When <code>AUTOWORKER_ENV=production</code> and <code>CORS_ORIGINS</code> is not supplied, no origins are enabled by default. Wildcard <code>*</code> is rejected.
+
+### Docker database configuration
+
+Docker Compose supplies:
+
+~~~text
+postgresql+psycopg://autoworker:autoworker@postgres:5432/autoworker
+~~~
+
+For deployment, provide a dedicated database URL instead of reusing a database owned by another application.
+
+---
+
+## 💻 Usage
+
+AutoWorker exposes its control plane through FastAPI.
+
+### Create a task
 
 ~~~bash
 curl -X POST http://localhost:8000/tasks \
@@ -269,38 +300,104 @@ curl -X POST http://localhost:8000/tasks \
   -d '{"goal":"Process an invoice and verify the ERP record"}'
 ~~~
 
-Read its lifecycle:
+### Inspect task state
 
 ~~~bash
 curl http://localhost:8000/tasks/<task-id>
+~~~
+
+### Inspect the audit trail
+
+~~~bash
 curl http://localhost:8000/tasks/<task-id>/events
 ~~~
 
+### Health checks
+
+~~~bash
+curl http://localhost:8000/health
+curl http://localhost:8000/ready
+~~~
+
+There is no fabricated <code>TaskRunner</code> API in the README: examples intentionally use the actual HTTP control plane exposed by the repository.
+
 ---
 
-## Repository structure
+## 🔌 API surface
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| <code>GET</code> | <code>/health</code> | Liveness check |
+| <code>GET</code> | <code>/ready</code> | Database readiness check |
+| <code>POST</code> | <code>/tasks</code> | Create a task |
+| <code>GET</code> | <code>/tasks</code> | List recent tasks |
+| <code>GET</code> | <code>/tasks/{task_id}</code> | Read task state |
+| <code>GET</code> | <code>/tasks/{task_id}/events</code> | Read persisted audit history |
+| <code>POST</code> | <code>/approvals/{approval_id}</code> | Approve or reject a pending action |
+
+---
+
+## 🧪 Testing & quality gates
+
+The project uses automated checks for every meaningful change.
+
+~~~text
+Backend
+  ✓ pytest
+  ✓ Ruff
+
+Database
+  ✓ PostgreSQL service
+  ✓ Alembic migration validation
+  ✓ Legacy-data migration checks
+
+Frontend
+  ✓ npm install
+  ✓ TypeScript build
+  ✓ Vite production build
+~~~
+
+Run locally:
+
+~~~bash
+pytest -q
+ruff check packages apps tests
+
+cd apps/web
+npm install
+npm run build
+~~~
+
+CI runs these checks automatically on pushes and pull requests.
+
+---
+
+## 📁 Repository structure
 
 ~~~text
 AutoWorker/
 ├── apps/
-│   ├── api/                 # FastAPI control plane
-│   └── worker/              # Worker application boundary
+│   ├── api/                  # FastAPI control plane
+│   └── worker/               # Worker application boundary
+│
 ├── packages/
-│   ├── agent/               # Agent-provider contracts
-│   ├── planning/            # Execution-plan contracts
-│   ├── domain/              # State machine + safety invariants
-│   ├── policy/              # Deterministic authorization
-│   ├── worker/              # Execution, leases, recovery, runtime
-│   ├── tools/               # Browser, document, ERP, registry contracts
-│   ├── memory/              # Task-scoped memory abstraction
-│   ├── audit/               # Events + evidence
-│   ├── verification/        # Business-result verification
-│   └── workflows/            # Flagship workflow composition
-├── apps/web/                # React + TypeScript console
+│   ├── agent/                # Agent-provider contracts
+│   ├── planning/             # Execution-plan contracts
+│   ├── domain/               # State machine + safety invariants
+│   ├── policy/               # Deterministic authorization
+│   ├── worker/               # Execution, leases, recovery, runtime
+│   ├── tools/                # Browser, document, ERP, registry contracts
+│   ├── memory/               # Task-scoped memory abstraction
+│   ├── audit/                # Events + evidence
+│   ├── verification/         # Business-result verification
+│   └── workflows/            # Workflow composition
+│
+├── apps/web/                 # React + TypeScript operations console
 ├── infra/alembic/            # Database migrations
-├── tests/
-│   └── unit/                # Contract, lifecycle, policy, worker tests
+├── tests/unit/               # Domain, policy, worker, persistence, API tests
+│
 ├── docker-compose.yml
+├── pyproject.toml
 ├── PROJECT_BRIEF.md
 ├── ARCHITECTURE.md
 ├── DECISIONS.md
@@ -309,64 +406,41 @@ AutoWorker/
 
 ---
 
-## Engineering decisions
+## 🧠 Engineering decisions
 
-The repository documents architectural trade-offs instead of hiding them.
+AutoWorker documents the architectural reasoning behind its constraints.
 
 ### 1. Explicit state machine over an unconstrained agent loop
 
-Autonomous execution becomes inspectable and recoverable when lifecycle state is explicit.
+Lifecycle state is explicit so execution can be inspected, persisted, and recovered.
 
 ### 2. LLM proposes; policy authorizes
 
-The model never receives a direct "do anything" side-effect channel.
+The model operates behind typed proposal boundaries instead of a direct unrestricted side-effect channel.
 
 ### 3. Verification is separate from execution
 
-"Tool succeeded" and "business result is correct" are different claims.
+"Tool succeeded" and "the business outcome is correct" are different claims.
 
 ### 4. Evidence over chain-of-thought
 
-The system records useful operational facts without making private reasoning an audit artifact.
+The audit trail records operational facts and evidence references rather than private model reasoning.
 
 ### 5. Controlled environments first
 
 The flagship workflow uses simulated / controlled integrations before real financial systems.
 
-See **[ARCHITECTURE.md](ARCHITECTURE.md)** and **[DECISIONS.md](DECISIONS.md)** for the detailed reasoning.
+See [ARCHITECTURE.md](ARCHITECTURE.md) and [DECISIONS.md](DECISIONS.md) for deeper details.
 
 ---
 
-## Testing & quality gates
-
-Every meaningful change is expected to pass:
-
-~~~text
-Backend
-  ✓ pytest
-  ✓ Ruff
-
-Data
-  ✓ PostgreSQL service
-  ✓ Alembic migration validation
-  ✓ Legacy-data migration checks
-
-Frontend
-  ✓ npm install
-  ✓ production build
-~~~
-
-CI runs these checks automatically on pushes and pull requests.
-
----
-
-## Project status
+## 📌 Project status
 
 **Current phase:** Phase 4 — Autonomous capability layer
 
-The foundation is intentionally production-oriented, but the project is still under active development.
+The foundation is intentionally production-oriented, but the project remains under active development.
 
-### Current focus
+### Current engineering focus
 
 1. Durable cross-process idempotency
 2. Durable event outbox / operational event consistency
@@ -375,11 +449,11 @@ The foundation is intentionally production-oriented, but the project is still un
 5. PostgreSQL + controlled-browser end-to-end workflow coverage
 6. Deployment hardening and production health verification
 
-The project is **not** presented as a fully autonomous production worker yet; the remaining gaps are documented and treated as engineering work rather than hidden behind a demo.
+The repository deliberately documents remaining gaps instead of presenting a prototype as a completed production worker.
 
 ---
 
-## Roadmap
+## 🗺️ Roadmap
 
 ~~~text
 [✓] Domain safety foundation
@@ -389,6 +463,7 @@ The project is **not** presented as a fully autonomous production worker yet; th
 [✓] Verification + evidence
 [✓] Operations dashboard
 [✓] Worker runtime foundation
+[✓] Approval persistence projection
 [ ] Atomic durable idempotency
 [ ] Durable event outbox
 [ ] Full multi-worker dispatch
@@ -398,23 +473,61 @@ The project is **not** presented as a fully autonomous production worker yet; th
 
 ---
 
-## Why the project is built this way
+## 🤝 Contributing
 
-AutoWorker is intentionally closer to an **automation platform** than a chatbot demo.
+Contributions, issue reports, architectural discussion, and experiments are welcome.
 
-The engineering goal is not just to make an agent act autonomously.
+For a focused change:
 
-It is to make autonomous work:
+~~~bash
+git checkout -b feature/your-change
+# make and test your changes
 
-**bounded → explainable → recoverable → verifiable → auditable**
+pytest -q
+ruff check packages apps tests
 
-That is the bar the rest of the roadmap is designed to meet.
+git add .
+git commit -m "Describe the change"
+git push origin feature/your-change
+~~~
+
+Then open a Pull Request describing:
+
+- **What changed**
+- **Why it changed**
+- **How it was tested**
+- **Any safety / migration / compatibility implications**
+
+For architecture-level changes, update the relevant documentation in <code>ARCHITECTURE.md</code>, <code>DECISIONS.md</code>, or <code>PROGRESS.md</code>.
+
+---
+
+## 📚 Project documentation
+
+| Document | Purpose |
+|---|---|
+| [PROJECT_BRIEF.md](PROJECT_BRIEF.md) | Product scope, goals, and requirements |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture and boundaries |
+| [DECISIONS.md](DECISIONS.md) | Important engineering trade-offs |
+| [PROGRESS.md](PROGRESS.md) | Implementation progress and current state |
+
+---
+
+## ⚠️ Current limitations
+
+AutoWorker is **not yet a fully autonomous production deployment**.
+
+The current runtime and adapters intentionally prioritize safe execution boundaries, deterministic testing, controlled integrations, and inspectability. Cross-process durable coordination, the full multi-worker dispatch layer, broader end-to-end computer-use coverage, and production deployment/observability remain roadmap work.
 
 ---
 
 <div align="center">
 
-### AutoWorker
+### ⚙️ AutoWorker
 **Autonomous execution with explicit control.**
+
+Built around a simple idea:
+
+**bounded → recoverable → verifiable → auditable**
 
 </div>
