@@ -70,7 +70,7 @@ button:disabled{cursor:wait;opacity:.55}
 .primaryButton{border:0;border-radius:9px;padding:10px 13px;background:#edf1ff;color:#0a0d14;font-size:11px;font-weight:700;white-space:nowrap}
 
 .errorBanner{display:flex;align-items:center;gap:10px;margin:-8px 0 20px;padding:10px 13px;border:1px solid #54313d;background:#1a1017;color:#ffb5bf;border-radius:11px;font-size:12px}
-.errorBanner span{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#452531}
+.errorBanner span{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#452531;flex:0 0 auto}.errorCopy{flex:1}.retryButton{border:1px solid #5f3944;background:#25141c;color:#ffd2d8;border-radius:8px;padding:6px 10px;font:inherit;font-weight:700;cursor:pointer}.retryButton:hover{background:#321a23}.retryButton:disabled{opacity:.55;cursor:wait}
 
 .pageStack{display:grid;gap:16px}
 .metricGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
