@@ -18,7 +18,7 @@ import {
 } from "./api";
 import "./styles.css";
 
-type View = "overview" | "tasks" | "approvals" | "evidence" | "workers";
+type View = "overview" | "documents" | "tasks" | "approvals" | "evidence" | "workers";
 
 const STATUS_META: Record<TaskStatus, {label: string; tone: string; step: number}> = {
   CREATED: {label: "Queued", tone: "neutral", step: 0},
@@ -46,11 +46,49 @@ const ACTION_META: Record<ActionStatus, {tone: string}> = {
 
 const NAV_ITEMS: Array<{id: View; label: string; icon: string}> = [
   {id: "overview", label: "Overview", icon: "◈"},
-  {id: "tasks", label: "Tasks", icon: "▦"},
+  {id: "documents", label: "Documents", icon: "▤"},\n  {id: "tasks", label: "Tasks", icon: "▦"},
   {id: "approvals", label: "Approvals", icon: "✓"},
   {id: "evidence", label: "Evidence", icon: "◇"},
   {id: "workers", label: "Workers", icon: "◉"},
 ];
+
+function AuthScreen({onAuthenticated}: {onAuthenticated: (token: string) => void}) {
+  const [mode, setMode] = useState<"login" | "register">("register");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    try {
+      setBusy(true); setError("");
+      const response = mode === "register" ? await register(email, password) : await login(email, password);
+      onAuthenticated(response.access_token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed.");
+    } finally { setBusy(false); }
+  }
+  return <main className="appShell" style={{display:"grid",placeItems:"center",minHeight:"100vh"}}>
+    <form className="panel" onSubmit={submit} style={{width:"min(460px,92vw)",padding:"32px"}}>
+      <div className="microLabel">AUTOWORKER</div><h1>{mode === "register" ? "Create your workspace" : "Welcome back"}</h1>
+      <p>Upload your own documents and run isolated worker tasks.</p>
+      <input className="textInput" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+      <input className="textInput" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" />
+      {error && <div className="errorBanner">{error}</div>}
+      <button className="primaryButton" disabled={busy}>{busy ? "Working…" : mode === "register" ? "Create account" : "Sign in"}</button>
+      <button type="button" className="ghostButton" onClick={() => setMode(mode === "register" ? "login" : "register")}>{mode === "register" ? "I already have an account" : "Create a new account"}</button>
+    </form>
+  </main>;
+}
+
+function DocumentsView({documents, onUpload, selectedId, onSelect}: {documents: DocumentItem[]; onUpload: (file: File) => void; selectedId: string; onSelect: (id: string) => void}) {
+  return <div className="pageStack">
+    <section className="panel" style={{padding:"24px"}}>
+      <div className="panelHeader"><div><h2>Your documents</h2><p>Private to your account. Supported: PDF, TXT, Markdown, DOCX.</p></div><label className="primaryButton">Upload document<input type="file" hidden accept=".pdf,.txt,.md,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={(e) => { const file=e.target.files?.[0]; if(file) onUpload(file); e.currentTarget.value=""; }} /></label></div>
+      {!documents.length ? <EmptyState text="No documents yet. Upload one to give AutoWorker real context." /> : <div className="taskList">{documents.map((document) => <button className={document.document_id === selectedId ? "taskListItem selected" : "taskListItem"} key={document.document_id} onClick={() => onSelect(document.document_id)}><div className="taskListTop"><span>{document.media_type}</span><small>{Math.ceil(document.size_bytes/1024)} KB</small></div><strong>{document.filename}</strong><small>SHA-256 {document.sha256.slice(0,16)}…</small><p>{document.extracted_text_preview || "No text could be extracted from this document."}</p></button>)}</div>}
+    </section>
+  </div>;
+}
 
 function StatusPill({status}: {status: TaskStatus}) {
   const meta = STATUS_META[status];
@@ -112,12 +150,12 @@ function App() {
   const load = async (preserveError = false) => {
     try {
       if (!preserveError) setError(null);
-      const [nextTasks, nextApprovals, nextSystemStatus] = await Promise.all([listTasks(), listPendingApprovals(), getSystemStatus()]);
+      if (!token) return;\n      const [nextTasks, nextApprovals, nextSystemStatus, nextDocuments] = await Promise.all([listTasks(), listPendingApprovals(), getSystemStatus(), getDocuments()]);
       // A successful poll clears any transient connection error from an earlier cold-start/request failure.
       setError(null);
       setTasks(nextTasks);
       setApprovals(nextApprovals);
-      setSystemStatus(nextSystemStatus);
+      setSystemStatus(nextSystemStatus);\n      setDocuments(nextDocuments);
 
       const id = selectedId ?? nextTasks[0]?.task_id;
       if (id) {
@@ -142,7 +180,7 @@ function App() {
     void load();
     const timer = window.setInterval(() => void load(true), 3500);
     return () => window.clearInterval(timer);
-  }, [selectedId]);
+  }, [selectedId, token]);
 
   const metrics = useMemo(() => {
     const running = tasks.filter((task) => ["RUNNING", "PLANNING", "VERIFYING", "RECOVERING"].includes(task.status)).length;
@@ -161,7 +199,7 @@ function App() {
     try {
       setCreating(true);
       setError(null);
-      const created = await createTask(value);
+      const created = await createTask(value, selectedDocumentId || undefined);
       setGoal("");
       setSelectedId(created.task_id);
       setView("tasks");
@@ -187,8 +225,8 @@ function App() {
     }
   }
 
-  const title = view === "overview" ? "Operations overview"
-    : view === "tasks" ? "Task control"
+  if (!token) return <AuthScreen onAuthenticated={(nextToken) => { localStorage.setItem("autoworker_token", nextToken); setToken(nextToken); }} />;\n\n  const title = view === "overview" ? "Operations overview"
+    : view === "documents" ? "Your documents"\n    : view === "tasks" ? "Task control"
     : view === "approvals" ? "Approval center"
     : view === "evidence" ? "Evidence & verification"
     : "Worker fleet";
@@ -259,7 +297,7 @@ function App() {
           </div>
         )}
 
-        {view === "overview" && (
+        {view === "documents" && <DocumentsView documents={documents} onUpload={handleUpload} selectedId={selectedDocumentId} onSelect={setSelectedDocumentId} />}\n\n        {view === "overview" && (
           <Overview
             tasks={tasks}
             approvals={approvals}
