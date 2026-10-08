@@ -28,7 +28,9 @@ class Principal:
 
 def _secret() -> bytes:
     settings = get_settings()
-    value = settings.api_token or "autoworker-local-development-secret"
+    value = settings.auth_secret or (settings.api_token if settings.environment != "production" else None)
+    if not value:
+        raise RuntimeError("AUTOWORKER_AUTH_SECRET is required in production.")
     return value.encode()
 
 
