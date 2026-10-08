@@ -92,7 +92,7 @@ jobs:
         env:
           AUTOWORKER_ENV: development
         run: pytest -q
-      - run: ruff check packages apps tests
+      - name: Compile Python sources\n        run: python -m compileall -q apps packages tests\n      - run: ruff check packages apps tests
 
   frontend:
     runs-on: ubuntu-latest
@@ -207,6 +207,21 @@ jobs:
           import urllib.request
 
           base = "${API_URL}"
+          email = f"live-smoke-{int(time.time())}@example.test"
+          register_payload = json.dumps({
+              "email": email,
+              "password": "LiveSmoke-2026!"
+          }).encode()
+          request = urllib.request.Request(
+              f"{base}/auth/register",
+              data=register_payload,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(request, timeout=20) as response:
+              auth = json.load(response)
+          token = auth["access_token"]
+          headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
           payload = json.dumps({
               "goal": "Process invoice INV-LIVE-SMOKE total 250 INR"
           }).encode()
@@ -215,7 +230,7 @@ jobs:
               request = urllib.request.Request(
                   f"{base}/tasks",
                   data=payload,
-                  headers={"Content-Type": "application/json"},
+                  headers=headers,
                   method="POST",
               )
               with urllib.request.urlopen(request, timeout=20) as response:
@@ -231,7 +246,7 @@ jobs:
           while time.time() < deadline:
               try:
                   with urllib.request.urlopen(
-                      f"{base}/tasks/{task_id}/detail", timeout=20
+                      f"{base}/tasks/{task_id}/detail", headers=headers, timeout=20
                   ) as response:
                       detail = json.load(response)
               except urllib.error.HTTPError as exc:
