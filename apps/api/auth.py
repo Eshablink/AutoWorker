@@ -11,13 +11,12 @@ import json
 import secrets
 import time
 from dataclasses import dataclass
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import Header, HTTPException, status
 
 from apps.api.database import get_settings
 from packages.observability.metrics import AUTH_FAILURES
-from packages.persistence.sqlalchemy import UserRecord
 
 
 @dataclass(frozen=True)
