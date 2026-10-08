@@ -296,6 +296,7 @@ function App() {
           </div>
           <form className="createBar" onSubmit={handleCreate}>
             <span className="commandIcon">⌘</span>
+            {view !== "documents" && <select value={selectedDocumentId} onChange={(event) => setSelectedDocumentId(event.target.value)} aria-label="Attach document"><option value="">No document</option>{documents.map((document) => <option key={document.document_id} value={document.document_id}>{document.filename}</option>)}</select>}
             <input
               value={goal}
               onChange={(event) => setGoal(event.target.value)}
