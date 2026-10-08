@@ -315,63 +315,68 @@ class WorkerRuntime:
         return prepared
 
     def _execute_and_verify(self, task: Task) -> WorkerRunResult:
-        before_execution = task.version
         action = task.actions[task.current_step_index]
-        try:
-            self.orchestrator.execute_current(task)
-        except Exception as exc:
+
+        # If the process died after persisting ACTION_COMPLETED but before
+        # persisting verification, resume from verification instead of trying
+        # to execute the side effect a second time.
+        if action.status != __import__("packages.domain.models", fromlist=["ActionStatus"]).ActionStatus.COMPLETED:
+            before_execution = task.version
+            try:
+                self.orchestrator.execute_current(task)
+            except Exception as exc:
+                self.repository.save(
+                    task,
+                    AuditEvent(
+                        task_id=task.task_id,
+                        action_id=action.action_id,
+                        event_type=EventType.ACTION_FAILED.value,
+                        actor="WORKER_RUNTIME",
+                        details={"error": str(exc)},
+                    ),
+                    expected_version=before_execution,
+                )
+                try:
+                    before_recovery = task.version
+                    recovered = self.recovery.recover(task)
+                    self.repository.save(
+                        recovered,
+                        AuditEvent(
+                            task_id=recovered.task_id,
+                            action_id=action.action_id,
+                            event_type=EventType.RECOVERY_STARTED.value,
+                            actor="WORKER_RUNTIME",
+                            details={"retry_count": action.retry_count, "status": recovered.status.value},
+                        ),
+                        expected_version=before_recovery,
+                    )
+                    return WorkerRunResult(
+                        task.task_id,
+                        recovered.status,
+                        True,
+                        "recovery",
+                        recovered.error_message,
+                    )
+                except Exception as recovery_error:
+                    return WorkerRunResult(
+                        task.task_id,
+                        task.status,
+                        True,
+                        "execution",
+                        str(recovery_error),
+                    )
+
             self.repository.save(
                 task,
                 AuditEvent(
                     task_id=task.task_id,
                     action_id=action.action_id,
-                    event_type=EventType.ACTION_FAILED.value,
+                    event_type=EventType.ACTION_COMPLETED.value,
                     actor="WORKER_RUNTIME",
-                    details={"error": str(exc)},
+                    details={"status": action.status.value},
                 ),
                 expected_version=before_execution,
             )
-            try:
-                before_recovery = task.version
-                recovered = self.recovery.recover(task)
-                self.repository.save(
-                    recovered,
-                    AuditEvent(
-                        task_id=recovered.task_id,
-                        action_id=action.action_id,
-                        event_type=EventType.RECOVERY_STARTED.value,
-                        actor="WORKER_RUNTIME",
-                        details={"retry_count": action.retry_count, "status": recovered.status.value},
-                    ),
-                    expected_version=before_recovery,
-                )
-                return WorkerRunResult(
-                    task.task_id,
-                    recovered.status,
-                    True,
-                    "recovery",
-                    recovered.error_message,
-                )
-            except Exception as recovery_error:
-                return WorkerRunResult(
-                    task.task_id,
-                    task.status,
-                    True,
-                    "execution",
-                    str(recovery_error),
-                )
-
-        self.repository.save(
-            task,
-            AuditEvent(
-                task_id=task.task_id,
-                action_id=action.action_id,
-                event_type=EventType.ACTION_COMPLETED.value,
-                actor="WORKER_RUNTIME",
-                details={"status": action.status.value},
-            ),
-            expected_version=before_execution,
-        )
 
         try:
             before_verification = task.version
