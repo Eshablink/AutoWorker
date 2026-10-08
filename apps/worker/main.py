@@ -8,9 +8,11 @@ from threading import Event
 
 from apps.api.database import get_session_factory, get_settings
 from packages.persistence.coordination import SqlAlchemyIdempotencyStore, SqlAlchemyLeaseManager
+from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 from packages.persistence.queue import SqlAlchemyTaskQueue
 from packages.policy.engine import PolicyEngine
 from packages.worker.demo import build_demo_components
+from packages.worker.execution import ExecutionWorker
 from packages.worker.fleet import WorkerFleet
 from packages.worker.loop import WorkerLoop
 from packages.worker.orchestrator import TaskOrchestrator
@@ -22,10 +24,7 @@ logger = logging.getLogger("autoworker.worker.main")
 def build_runtime() -> WorkerRuntime:
     settings = get_settings()
     session_factory = get_session_factory()
-    repository = __import__(
-        "packages.persistence.sqlalchemy",
-        fromlist=["SqlAlchemyTaskRepository"],
-    ).SqlAlchemyTaskRepository(session_factory())
+    repository = SqlAlchemyTaskRepository(session_factory())
 
     registry, planner, executor, checks = build_demo_components()
     idempotency = SqlAlchemyIdempotencyStore(session_factory)
@@ -33,10 +32,7 @@ def build_runtime() -> WorkerRuntime:
     orchestrator = TaskOrchestrator(
         registry,
         PolicyEngine(registry),
-        __import__(
-            "packages.worker.execution",
-            fromlist=["ExecutionWorker"],
-        ).ExecutionWorker(executor, idempotency),
+        ExecutionWorker(executor, idempotency),
     )
     return WorkerRuntime(
         repository,
