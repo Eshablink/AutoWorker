@@ -92,7 +92,9 @@ jobs:
         env:
           AUTOWORKER_ENV: development
         run: pytest -q
-      - name: Compile Python sources\n        run: python -m compileall -q apps packages tests\n      - run: ruff check packages apps tests
+      - name: Compile Python sources
+        run: python -m compileall -q apps packages tests
+      - run: ruff check packages apps tests
 
   frontend:
     runs-on: ubuntu-latest
