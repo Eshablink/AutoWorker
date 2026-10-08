@@ -13,6 +13,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from apps.api.database import get_session_factory, get_settings
 from apps.api.routes.approvals import router as approvals_router
+from apps.api.routes.auth import router as auth_router
+from apps.api.routes.documents import router as documents_router
 from apps.api.routes.events import router as events_router
 from apps.api.routes.tasks import router as tasks_router
 from packages.observability.logging import JsonFormatter
@@ -78,6 +80,8 @@ if settings.cors_origins:
         allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
     )
 
+app.include_router(auth_router)
+app.include_router(documents_router)
 app.include_router(tasks_router)
 app.include_router(events_router)
 app.include_router(approvals_router)
