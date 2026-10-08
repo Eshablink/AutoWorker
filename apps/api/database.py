@@ -1,4 +1,5 @@
 from functools import lru_cache
+from threading import Lock
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -6,6 +7,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from apps.api.settings import Settings
 from packages.persistence.sqlalchemy import Base, SqlAlchemyTaskRepository
 from packages.worker.broker import RedisStreamsTaskBroker
+
+
+_schema_init_lock = Lock()
 
 
 @lru_cache
@@ -18,7 +22,8 @@ def get_session_factory() -> sessionmaker[Session]:
     settings = get_settings()
     engine = create_engine(settings.database_url, pool_pre_ping=True)
     if settings.environment == "development":
-        Base.metadata.create_all(engine)
+        with _schema_init_lock:
+            Base.metadata.create_all(engine)
     return sessionmaker(engine, expire_on_commit=False)
 
 
