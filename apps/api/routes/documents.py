@@ -4,7 +4,7 @@ import re
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status\nfrom fastapi.responses import Response
 from pydantic import BaseModel
 
 from apps.api.auth import Principal, require_api_auth
@@ -142,6 +142,25 @@ def get_document(document_id: UUID, principal: Principal = Depends(require_api_a
             sha256=row.sha256,
             extracted_text_preview=row.extracted_text[:1000],
             created_at=row.created_at,
+        )
+    finally:
+        session.close()
+
+
+@router.get("/{document_id}/content")
+def download_document(document_id: UUID, principal: Principal = Depends(require_api_auth)) -> Response:
+    session = get_session_factory()()
+    try:
+        row = session.query(DocumentRecord).filter(
+            DocumentRecord.document_id == str(document_id),
+            DocumentRecord.user_id == str(principal.user_id),
+        ).first()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Document not found.")
+        return Response(
+            content=row.content,
+            media_type=row.media_type,
+            headers={"Content-Disposition": f'attachment; filename="{row.filename}"'},
         )
     finally:
         session.close()
