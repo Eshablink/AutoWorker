@@ -44,5 +44,21 @@ services:
     ports: ["3000:80"]
     depends_on: [api]
 
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://autoworker:autoworker@postgres:5432/autoworker
+      AUTOWORKER_ENV: development
+      REDIS_URL: redis://redis:6379/0
+      AUTOWORKER_WORKER_ID: compose-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   autoworker_pgdata:
