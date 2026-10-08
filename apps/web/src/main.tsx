@@ -3,6 +3,11 @@ import { createRoot } from "react-dom/client";
 import {
   ActionStatus,
   createTask,
+  DocumentItem,
+  getDocuments,
+  login,
+  register,
+  uploadDocument,
   getSystemStatus,
   decideApproval,
   getTaskDetail,
@@ -132,6 +137,9 @@ function valuePreview(value: Record<string, unknown>): string {
 }
 
 function App() {
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("autoworker_token"));
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string>("");
   const [view, setView] = useState<View>("overview");
   const [tasks, setTasks] = useState<TaskSummary[]>([]);
   const [approvals, setApprovals] = useState<PendingApproval[]>([]);
@@ -214,6 +222,11 @@ function App() {
     }
   }
 
+  async function handleUpload(file: File) {
+    try { setError(null); const uploaded = await uploadDocument(file); setDocuments((current) => [uploaded, ...current]); setSelectedDocumentId(uploaded.document_id); setView("documents"); }
+    catch (err) { setError(err instanceof Error ? err.message : "Document upload failed."); }
+  }
+
   async function handleApproval(approval: PendingApproval, status: "APPROVED" | "REJECTED") {
     try {
       setActingOnApproval(approval.approval_id);
@@ -227,6 +240,8 @@ function App() {
       setActingOnApproval(null);
     }
   }
+
+  if (!token) return <AuthScreen onAuthenticated={(nextToken) => { localStorage.setItem("autoworker_token", nextToken); setToken(nextToken); }} />;
 
   if (!token) return <AuthScreen onAuthenticated={(nextToken) => { localStorage.setItem("autoworker_token", nextToken); setToken(nextToken); }} />;
 
