@@ -2,8 +2,9 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import SQLAlchemyError
 
-from apps.api.database import get_task_repository
+from apps.api.database import get_task_broker, get_task_repository
 from packages.domain.models import AuditEvent, Task, TaskStatus
 from packages.domain.repository import TaskNotFoundError
 from packages.observability.metrics import TASKS_CREATED
@@ -68,6 +69,25 @@ def create_task(
             details={"goal_length": len(task.goal)},
         )
     )
+    # Commit before returning 201. FastAPI dependency teardown happens after
+    # the response is created, so a dependency-only commit can report false success.
+    try:
+        repository.session.commit()
+    except SQLAlchemyError as exc:
+        repository.session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Task could not be persisted.",
+        ) from exc
+
+    # Redis is a low-latency hint; SQL remains authoritative.
+    broker = get_task_broker()
+    if broker is not None:
+        try:
+            broker.publish(task.task_id)
+        except Exception:
+            pass
+
     return TaskResponse(
         task_id=task.task_id,
         goal=task.goal,
