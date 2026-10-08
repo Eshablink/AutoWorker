@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from apps.api.auth import hash_password, issue_access_token, verify_password
-from apps.api.database import get_session_factory
+from apps.api.database import get_session_factory, get_settings
 from packages.persistence.sqlalchemy import UserRecord
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -30,6 +30,12 @@ class AuthResponse(BaseModel):
     email: str
 
 
+def _ensure_auth_configured() -> None:
+    settings = get_settings()
+    if settings.environment == "production" and not settings.auth_secret:
+        raise HTTPException(status_code=503, detail="Authentication service is not configured.")
+
+
 def _normalized_email(value: str) -> str:
     email = value.strip().lower()
     if not _EMAIL.match(email):
@@ -40,6 +46,7 @@ def _normalized_email(value: str) -> str:
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register(request: RegisterRequest) -> AuthResponse:
     email = _normalized_email(request.email)
+    _ensure_auth_configured()
     session = get_session_factory()()
     try:
         existing = session.query(UserRecord).filter(UserRecord.email == email).first()
@@ -62,6 +69,7 @@ def register(request: RegisterRequest) -> AuthResponse:
 @router.post("/login", response_model=AuthResponse)
 def login(request: LoginRequest) -> AuthResponse:
     email = _normalized_email(request.email)
+    _ensure_auth_configured()
     session = get_session_factory()()
     try:
         user = session.query(UserRecord).filter(UserRecord.email == email).first()
