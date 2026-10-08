@@ -4,7 +4,8 @@ import re
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status\nfrom fastapi.responses import Response
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from apps.api.auth import Principal, require_api_auth
