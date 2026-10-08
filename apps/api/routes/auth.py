@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
@@ -53,7 +53,7 @@ def register(request: RegisterRequest) -> AuthResponse:
         )
         session.add(user)
         session.commit()
-        token = issue_access_token(__import__("uuid").UUID(user.user_id), user.email)
+        token = issue_access_token(UUID(user.user_id), user.email)
         return AuthResponse(access_token=token, user_id=user.user_id, email=user.email)
     finally:
         session.close()
