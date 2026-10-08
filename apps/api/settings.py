@@ -15,7 +15,7 @@ class Settings(BaseModel):
         default="sqlite:///./autoworker.db",
         min_length=1,
     )
-    environment: str = "development"
+    environment: str = "production"
     evidence_root: str = "./data/evidence"
     llm_api_key: str | None = None
     llm_model: str | None = None
@@ -31,7 +31,7 @@ class Settings(BaseModel):
 
     @classmethod
     def from_environment(cls) -> "Settings":
-        environment = os.getenv("AUTOWORKER_ENV", "development")
+        environment = os.getenv("AUTOWORKER_ENV", "production")
         raw_origins = os.getenv("CORS_ORIGINS")
         if raw_origins is None:
             origins = ["http://localhost:5173"] if environment != "production" else []
