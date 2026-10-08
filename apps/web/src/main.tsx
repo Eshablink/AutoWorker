@@ -243,8 +243,6 @@ function App() {
 
   if (!token) return <AuthScreen onAuthenticated={(nextToken) => { localStorage.setItem("autoworker_token", nextToken); setToken(nextToken); }} />;
 
-  if (!token) return <AuthScreen onAuthenticated={(nextToken) => { localStorage.setItem("autoworker_token", nextToken); setToken(nextToken); }} />;
-
   const title = view === "overview" ? "Operations overview"
     : view === "documents" ? "Your documents"
     : view === "tasks" ? "Task control"
@@ -262,7 +260,7 @@ function App() {
 
         <div className="workspaceCard">
           <span>WORKSPACE</span>
-          <strong>Operator Lab</strong>
+          <strong>Personal workspace</strong>
           <small>{systemStatus ? `${systemStatus.database} · ${systemStatus.execution === "enabled" ? "execution enabled" : "execution disabled"}` : "Runtime status loading…"}</small>
         </div>
 
