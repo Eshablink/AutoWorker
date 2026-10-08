@@ -126,7 +126,9 @@ function App() {
         setEvents([]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to reach AutoWorker API.");
+      const message = err instanceof Error ? err.message : "Unable to reach AutoWorker API.";
+      const isConnectionFailure = /failed to fetch|networkerror|load failed|unable to reach/i.test(message);
+      setError(isConnectionFailure ? "The API is waking up or temporarily unavailable. Retrying automatically…" : message);
     } finally {
       setLoading(false);
     }
@@ -245,7 +247,13 @@ function App() {
           </form>
         </header>
 
-        {error && <div className="errorBanner" role="alert"><span>!</span>{error}</div>}
+        {error && (
+          <div className="errorBanner" role="alert">
+            <span>!</span>
+            <div className="errorCopy">{error}</div>
+            <button type="button" className="retryButton" onClick={() => void load()} disabled={loading}>Retry</button>
+          </div>
+        )}
 
         {view === "overview" && (
           <Overview
