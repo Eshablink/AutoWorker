@@ -85,6 +85,16 @@ class SqlAlchemyIdempotencyStore(IdempotencyStore):
                 f"Idempotency key '{key}' is already claimed by another execution."
             )
 
+    def release(self, key: str) -> None:
+        with self.session_factory() as session:
+            session.execute(
+                delete(ExecutionIdempotencyRecord).where(
+                    ExecutionIdempotencyRecord.idempotency_key == key,
+                    ExecutionIdempotencyRecord.status == self.IN_PROGRESS,
+                )
+            )
+            session.commit()
+
     def put(self, key: str, result: ToolExecutionResult) -> None:
         now = _utc_now()
         with self.session_factory() as session:
