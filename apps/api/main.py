@@ -165,6 +165,19 @@ def ready() -> dict[str, str]:
     return {"status": "ready", "service": "autoworker-api"}
 
 
+@app.get("/system/status", tags=["system"])
+def system_status() -> dict[str, object]:
+    worker_enabled = os.getenv("AUTOWORKER_WORKER_ENABLED", "").lower() in {"1", "true", "yes"}
+    worker_mode = "embedded" if worker_enabled else ("external" if settings.redis_url else "disabled")
+    database = "PostgreSQL" if settings.database_url.lower().startswith(("postgresql://", "postgresql+")) else "SQLite"
+    return {
+        "database": database,
+        "redis_configured": bool(settings.redis_url),
+        "worker_mode": worker_mode,
+        "execution": "enabled" if worker_enabled or settings.redis_url else "disabled",
+    }
+
+
 @app.get("/metrics", tags=["system"])
 def metrics() -> Response:
     payload, content_type = render_metrics()
