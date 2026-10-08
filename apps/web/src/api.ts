@@ -112,7 +112,19 @@ export interface TaskEvent {
 }
 
 
-export interface AuthResponse { access_token: string; token_type: string; expires_in: number; user_id: string; email: string; }\n\nexport interface DocumentItem {\n  document_id: string;\n  filename: string;\n  media_type: string;\n  size_bytes: number;\n  sha256: string;\n  extracted_text_preview: string;\n  created_at: string;\n}\n\nexport interface SystemStatus {
+export interface AuthResponse { access_token: string; token_type: string; expires_in: number; user_id: string; email: string; }
+
+export interface DocumentItem {
+  document_id: string;
+  filename: string;
+  media_type: string;
+  size_bytes: number;
+  sha256: string;
+  extracted_text_preview: string;
+  created_at: string;
+}
+
+export interface SystemStatus {
   database: "PostgreSQL" | "SQLite";
   redis_configured: boolean;
   worker_mode: "embedded" | "external" | "disabled";
@@ -178,7 +190,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function register(email: string, password: string): Promise<AuthResponse> {\n  return request<AuthResponse>("/auth/register", {method: "POST", body: JSON.stringify({email, password})});\n}\n\nexport function login(email: string, password: string): Promise<AuthResponse> {\n  return request<AuthResponse>("/auth/login", {method: "POST", body: JSON.stringify({email, password})});\n}\n\nexport function getDocuments(): Promise<DocumentItem[]> {\n  return request<DocumentItem[]>("/documents");\n}\n\nexport async function uploadDocument(file: File): Promise<DocumentItem> {\n  const token = localStorage.getItem("autoworker_token");\n  const response = await fetch(API_BASE + "/documents", {method: "POST", body: (() => { const data = new FormData(); data.append("file", file); return data; })(), headers: token ? {"Authorization": "Bearer " + token} : {}});\n  if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.detail ?? `Upload failed: ${response.status}`); }\n  return response.json() as Promise<DocumentItem>;\n}\n\nexport function getSystemStatus(): Promise<SystemStatus> {
+export function register(email: string, password: string): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/register", {method: "POST", body: JSON.stringify({email, password})});
+}
+
+export function login(email: string, password: string): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/login", {method: "POST", body: JSON.stringify({email, password})});
+}
+
+export function getDocuments(): Promise<DocumentItem[]> {
+  return request<DocumentItem[]>("/documents");
+}
+
+export async function uploadDocument(file: File): Promise<DocumentItem> {
+  const token = localStorage.getItem("autoworker_token");
+  const response = await fetch(API_BASE + "/documents", {method: "POST", body: (() => { const data = new FormData(); data.append("file", file); return data; })(), headers: token ? {"Authorization": "Bearer " + token} : {}});
+  if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.detail ?? `Upload failed: ${response.status}`); }
+  return response.json() as Promise<DocumentItem>;
+}
+
+export function getSystemStatus(): Promise<SystemStatus> {
   return request<SystemStatus>("/system/status");
 }
 
