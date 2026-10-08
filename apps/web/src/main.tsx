@@ -46,7 +46,8 @@ const ACTION_META: Record<ActionStatus, {tone: string}> = {
 
 const NAV_ITEMS: Array<{id: View; label: string; icon: string}> = [
   {id: "overview", label: "Overview", icon: "◈"},
-  {id: "documents", label: "Documents", icon: "▤"},\n  {id: "tasks", label: "Tasks", icon: "▦"},
+  {id: "documents", label: "Documents", icon: "▤"},
+  {id: "tasks", label: "Tasks", icon: "▦"},
   {id: "approvals", label: "Approvals", icon: "✓"},
   {id: "evidence", label: "Evidence", icon: "◇"},
   {id: "workers", label: "Workers", icon: "◉"},
@@ -150,12 +151,14 @@ function App() {
   const load = async (preserveError = false) => {
     try {
       if (!preserveError) setError(null);
-      if (!token) return;\n      const [nextTasks, nextApprovals, nextSystemStatus, nextDocuments] = await Promise.all([listTasks(), listPendingApprovals(), getSystemStatus(), getDocuments()]);
+      if (!token) return;
+      const [nextTasks, nextApprovals, nextSystemStatus, nextDocuments] = await Promise.all([listTasks(), listPendingApprovals(), getSystemStatus(), getDocuments()]);
       // A successful poll clears any transient connection error from an earlier cold-start/request failure.
       setError(null);
       setTasks(nextTasks);
       setApprovals(nextApprovals);
-      setSystemStatus(nextSystemStatus);\n      setDocuments(nextDocuments);
+      setSystemStatus(nextSystemStatus);
+      setDocuments(nextDocuments);
 
       const id = selectedId ?? nextTasks[0]?.task_id;
       if (id) {
@@ -225,8 +228,11 @@ function App() {
     }
   }
 
-  if (!token) return <AuthScreen onAuthenticated={(nextToken) => { localStorage.setItem("autoworker_token", nextToken); setToken(nextToken); }} />;\n\n  const title = view === "overview" ? "Operations overview"
-    : view === "documents" ? "Your documents"\n    : view === "tasks" ? "Task control"
+  if (!token) return <AuthScreen onAuthenticated={(nextToken) => { localStorage.setItem("autoworker_token", nextToken); setToken(nextToken); }} />;
+
+  const title = view === "overview" ? "Operations overview"
+    : view === "documents" ? "Your documents"
+    : view === "tasks" ? "Task control"
     : view === "approvals" ? "Approval center"
     : view === "evidence" ? "Evidence & verification"
     : "Worker fleet";
@@ -297,7 +303,9 @@ function App() {
           </div>
         )}
 
-        {view === "documents" && <DocumentsView documents={documents} onUpload={handleUpload} selectedId={selectedDocumentId} onSelect={setSelectedDocumentId} />}\n\n        {view === "overview" && (
+        {view === "documents" && <DocumentsView documents={documents} onUpload={handleUpload} selectedId={selectedDocumentId} onSelect={setSelectedDocumentId} />}
+
+        {view === "overview" && (
           <Overview
             tasks={tasks}
             approvals={approvals}
