@@ -123,12 +123,12 @@ async def request_id_middleware(request: Request, call_next):
     return response
 
 
-@app.get("/", tags=["system"])
+@app.api_route("/", methods=["GET", "HEAD"], tags=["system"])
 def root() -> dict[str, str]:
     return {"service": "autoworker-api", "status": "online", "health": "/health", "ready": "/ready"}
 
 
-@app.get("/health", tags=["system"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["system"])
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "autoworker-api"}
 
