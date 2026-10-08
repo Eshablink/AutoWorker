@@ -1,5 +1,8 @@
 import logging
+import os
 import time
+from contextlib import asynccontextmanager
+from threading import Event, Thread
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request, status
@@ -16,6 +19,34 @@ from packages.observability.logging import JsonFormatter
 from packages.observability.metrics import HTTP_LATENCY, HTTP_REQUESTS, render_metrics
 
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    worker_thread = None
+    stop_event = Event()
+    if os.getenv("AUTOWORKER_WORKER_ENABLED", "").lower() in {"1", "true", "yes"}:
+        from apps.worker.main import run_worker
+
+        worker_thread = Thread(
+            target=run_worker,
+            args=(stop_event,),
+            name="autoworker-embedded-worker",
+            daemon=True,
+        )
+        worker_thread.start()
+        logger = logging.getLogger("autoworker")
+        logger.info("embedded_worker_started")
+    try:
+        yield
+    finally:
+        stop_event.set()
+        if worker_thread is not None:
+            worker_thread.join(timeout=10)
+            logging.getLogger("autoworker").info(
+                "embedded_worker_stopped",
+                extra={"alive": worker_thread.is_alive()},
+            )
 
 
 def _configure_logging() -> logging.Logger:
@@ -35,6 +66,7 @@ app = FastAPI(
     title="AutoWorker API",
     version="0.1.0",
     description="API for autonomous AI computer-worker orchestration.",
+    lifespan=lifespan,
 )
 
 if settings.cors_origins:
