@@ -42,6 +42,10 @@ class IdempotencyStore(Protocol):
     def put(self, key: str, result: ToolExecutionResult) -> None:
         ...
 
+    def release(self, key: str) -> None:
+        """Release a claim after a confirmed executor failure."""
+        ...
+
 
 class InMemoryIdempotencyStore:
     def __init__(self) -> None:
@@ -68,6 +72,10 @@ class InMemoryIdempotencyStore:
     def put(self, key: str, result: ToolExecutionResult) -> None:
         with self._lock:
             self._results[key] = result
+            self._in_progress.discard(key)
+
+    def release(self, key: str) -> None:
+        with self._lock:
             self._in_progress.discard(key)
 
 
@@ -131,6 +139,8 @@ class ExecutionWorker:
             action.error_message = str(exc)
             action.status = ActionStatus.FAILED
             action.completed_at = datetime.now(timezone.utc)
+            if action.is_side_effecting and action.idempotency_key:
+                self.idempotency_store.release(action.idempotency_key)
             raise
 
         if action.is_side_effecting and action.idempotency_key:
