@@ -112,6 +112,18 @@ export interface TaskEvent {
 }
 
 
+export interface AuthResponse { access_token: string; token_type: string; expires_in: number; user_id: string; email: string; }
+
+export interface DocumentItem {
+  document_id: string;
+  filename: string;
+  media_type: string;
+  size_bytes: number;
+  sha256: string;
+  extracted_text_preview: string;
+  created_at: string;
+}
+
 export interface SystemStatus {
   database: "PostgreSQL" | "SQLite";
   redis_configured: boolean;
@@ -143,7 +155,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...(API_TOKEN ? {"Authorization": "Bearer " + API_TOKEN} : {}),
+      ...((localStorage.getItem("autoworker_token") ?? API_TOKEN) ? {"Authorization": "Bearer " + (localStorage.getItem("autoworker_token") ?? API_TOKEN)} : {}),
       ...(init?.headers ?? {}),
     },
   });
@@ -178,6 +190,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+export function register(email: string, password: string): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/register", {method: "POST", body: JSON.stringify({email, password})});
+}
+
+export function login(email: string, password: string): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/login", {method: "POST", body: JSON.stringify({email, password})});
+}
+
+export function getDocuments(): Promise<DocumentItem[]> {
+  return request<DocumentItem[]>("/documents");
+}
+
+export async function uploadDocument(file: File): Promise<DocumentItem> {
+  const token = localStorage.getItem("autoworker_token");
+  const response = await fetch(API_BASE + "/documents", {method: "POST", body: (() => { const data = new FormData(); data.append("file", file); return data; })(), headers: token ? {"Authorization": "Bearer " + token} : {}});
+  if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.detail ?? `Upload failed: ${response.status}`); }
+  return response.json() as Promise<DocumentItem>;
+}
+
 export function getSystemStatus(): Promise<SystemStatus> {
   return request<SystemStatus>("/system/status");
 }
@@ -190,10 +221,10 @@ export function getTaskDetail(taskId: string): Promise<TaskDetail> {
   return request<TaskDetail>(`/tasks/${taskId}/detail`);
 }
 
-export function createTask(goal: string): Promise<TaskSummary> {
+export function createTask(goal: string, documentId?: string): Promise<TaskSummary> {
   return request<TaskSummary>("/tasks", {
     method: "POST",
-    body: JSON.stringify({goal}),
+    body: JSON.stringify({goal, ...(documentId ? {document_id: documentId} : {})}),
   });
 }
 

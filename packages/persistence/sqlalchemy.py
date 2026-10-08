@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import JSON, DateTime, Integer, String, Text, select
+from sqlalchemy import JSON, DateTime, Integer, LargeBinary, String, Text, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 from packages.domain.models import AuditEvent, Task, TaskStatus
@@ -15,10 +15,34 @@ class Base(DeclarativeBase):
     pass
 
 
+class UserRecord(Base):
+    __tablename__ = "users"
+
+    user_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(512), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class DocumentRecord(Base):
+    __tablename__ = "documents"
+
+    document_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    media_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    extracted_text: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class TaskRecord(Base):
     __tablename__ = "tasks"
 
     task_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    owner_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -106,20 +130,38 @@ class SqlAlchemyTaskRepository:
             raise TaskNotFoundError(str(task_id))
         return task_from_record(row.payload)
 
-    def list_tasks(self, *, limit: int = 50) -> list[Task]:
+    def get_owned(self, task_id: UUID, owner_id: UUID) -> Task:
+        row = self.session.execute(
+            select(TaskRecord).where(
+                TaskRecord.task_id == str(task_id),
+                TaskRecord.owner_id == str(owner_id),
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise TaskNotFoundError(str(task_id))
+        return task_from_record(row.payload)
+
+    def get_user(self, email: str) -> UserRecord | None:
+        return self.session.execute(
+            select(UserRecord).where(UserRecord.email == email)
+        ).scalar_one_or_none()
+
+    def list_tasks(self, *, limit: int = 50, owner_id: UUID | None = None) -> list[Task]:
         if limit < 1:
             raise ValueError("limit must be at least 1.")
-        rows = self.session.execute(
-            select(TaskRecord).order_by(TaskRecord.created_at.desc()).limit(limit)
-        ).scalars().all()
+        statement = select(TaskRecord)
+        if owner_id is not None:
+            statement = statement.where(TaskRecord.owner_id == str(owner_id))
+        rows = self.session.execute(statement.order_by(TaskRecord.created_at.desc()).limit(limit)).scalars().all()
         return [task_from_record(row.payload) for row in rows]
 
-    def create(self, task: Task) -> Task:
+    def create(self, task: Task, *, owner_id: UUID | None = None) -> Task:
         if self.session.get(TaskRecord, str(task.task_id)) is not None:
             raise ConcurrentUpdateError(f"Task {task.task_id} already exists.")
         self.session.add(
             TaskRecord(
                 task_id=str(task.task_id),
+                owner_id=str(owner_id) if owner_id is not None else None,
                 version=task.version,
                 payload=task_to_record(task),
                 created_at=task.created_at,
@@ -252,13 +294,14 @@ class SqlAlchemyTaskRepository:
             row.created_at = approval.created_at
             row.decided_at = approval.decided_at
 
-    def find_by_approval_id(self, approval_id: UUID) -> Task:
+    def find_by_approval_id(self, approval_id: UUID, *, owner_id: UUID | None = None) -> Task:
         row = self.session.get(ApprovalRecord, str(approval_id))
         if row is None:
             raise TaskNotFoundError(str(approval_id))
-        return self.get(UUID(row.task_id))
+        task_id = UUID(row.task_id)
+        return self.get_owned(task_id, owner_id) if owner_id is not None else self.get(task_id)
 
-    def list_pending_approvals(self, *, limit: int = 50) -> list[Task]:
+    def list_pending_approvals(self, *, limit: int = 50, owner_id: UUID | None = None) -> list[Task]:
         if limit < 1:
             raise ValueError("limit must be at least 1.")
         approval_rows = self.session.execute(
@@ -268,10 +311,10 @@ class SqlAlchemyTaskRepository:
             .limit(limit)
         ).scalars().all()
         task_ids = list(dict.fromkeys(row.task_id for row in approval_rows))
-        return [
-            self.get(UUID(task_id))
-            for task_id in task_ids
-        ]
+        if owner_id is not None:
+            owned = self.session.execute(select(TaskRecord.task_id).where(TaskRecord.task_id.in_(task_ids), TaskRecord.owner_id == str(owner_id))).scalars().all()
+            task_ids = owned
+        return [self.get(UUID(task_id)) for task_id in task_ids]
 
     def list_audit(self, task_id: UUID) -> list[AuditEvent]:
         rows = self.session.execute(

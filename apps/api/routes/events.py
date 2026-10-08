@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from apps.api.database import get_task_repository
-from apps.api.auth import require_api_auth
+from apps.api.auth import Principal, require_api_auth
 from packages.domain.repository import TaskNotFoundError
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 
@@ -15,9 +15,10 @@ def list_task_events(
     task_id: UUID,
     limit: int = Query(default=100, ge=1, le=500),
     repository: SqlAlchemyTaskRepository = Depends(get_task_repository),
+    principal: Principal = Depends(require_api_auth),
 ) -> dict:
     try:
-        repository.get(task_id)
+        repository.get_owned(task_id, principal.user_id)
     except TaskNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Task not found.") from exc
 

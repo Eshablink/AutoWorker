@@ -11,6 +11,7 @@ class Settings(BaseModel):
     redis_maxlen: int = Field(default=10_000, ge=100)
     redis_block_ms: int = Field(default=1_000, ge=1, le=60_000)
     api_token: str | None = None
+    auth_secret: str | None = None
     database_url: str = Field(
         default="sqlite:///./autoworker.db",
         min_length=1,
@@ -46,6 +47,7 @@ class Settings(BaseModel):
             redis_maxlen=int(os.getenv("REDIS_MAXLEN", "10000")),
             redis_block_ms=int(os.getenv("REDIS_BLOCK_MS", "1000")),
             api_token=os.getenv("AUTOWORKER_API_TOKEN") or None,
+            auth_secret=os.getenv("AUTOWORKER_AUTH_SECRET") or None,
             database_url=os.getenv("DATABASE_URL", "sqlite:///./autoworker.db"),
             environment=environment,
             evidence_root=os.getenv("EVIDENCE_ROOT", "./data/evidence"),

@@ -11,7 +11,7 @@ from packages.domain.state import TaskStateMachine
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 from packages.observability.metrics import APPROVAL_DECISIONS, APPROVAL_LATENCY
 from apps.api.database import get_task_repository
-from apps.api.auth import require_api_auth
+from apps.api.auth import Principal, require_api_auth
 
 router = APIRouter(prefix="/approvals", tags=["approvals"], dependencies=[Depends(require_api_auth)])
 
@@ -43,9 +43,10 @@ class ApprovalDecision(BaseModel):
 def list_pending_approvals(
     limit: int = Query(default=50, ge=1, le=100),
     repository: SqlAlchemyTaskRepository = Depends(get_task_repository),
+    principal: Principal = Depends(require_api_auth),
 ) -> list[PendingApprovalResponse]:
     results: list[PendingApprovalResponse] = []
-    for task in repository.list_pending_approvals(limit=limit):
+    for task in repository.list_pending_approvals(limit=limit, owner_id=principal.user_id):
         for action in task.actions:
             approval = action.approval_request
             if approval is None or approval.status != ApprovalStatus.PENDING:
@@ -76,12 +77,13 @@ def decide_approval(
     approval_id: UUID,
     decision: ApprovalDecision,
     repository: SqlAlchemyTaskRepository = Depends(get_task_repository),
+    principal: Principal = Depends(require_api_auth),
 ):
     if decision.status not in {ApprovalStatus.APPROVED, ApprovalStatus.REJECTED}:
         raise HTTPException(status_code=400, detail="Approval must be APPROVED or REJECTED.")
 
     try:
-        task = repository.find_by_approval_id(approval_id)
+        task = repository.find_by_approval_id(approval_id, owner_id=principal.user_id)
     except TaskNotFoundError as exc:
         raise HTTPException(status_code=404, detail="Approval request not found.") from exc
 
