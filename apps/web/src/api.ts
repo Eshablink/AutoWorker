@@ -111,6 +111,14 @@ export interface TaskEvent {
   timestamp: string;
 }
 
+
+export interface SystemStatus {
+  database: "PostgreSQL" | "SQLite";
+  redis_configured: boolean;
+  worker_mode: "embedded" | "external" | "disabled";
+  execution: "enabled" | "disabled";
+}
+
 export interface PendingApproval {
   approval_id: string;
   task_id: string;
@@ -170,7 +178,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function listTasks(limit = 50): Promise<TaskSummary[]> {
+export function getSystemStatus(): Promise<SystemStatus> {\n  return request<SystemStatus>("/system/status");\n}\n\nexport function listTasks(limit = 50): Promise<TaskSummary[]> {
   return request<TaskSummary[]>(`/tasks?limit=${limit}`);
 }
 
