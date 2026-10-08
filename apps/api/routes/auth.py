@@ -75,7 +75,7 @@ def login(request: LoginRequest) -> AuthResponse:
         user = session.query(UserRecord).filter(UserRecord.email == email).first()
         if user is None or not verify_password(request.password, user.password_hash):
             raise HTTPException(status_code=401, detail="Invalid email or password.")
-        token = issue_access_token(__import__("uuid").UUID(user.user_id), user.email)
+        token = issue_access_token(UUID(user.user_id), user.email)
         return AuthResponse(access_token=token, user_id=user.user_id, email=user.email)
     finally:
         session.close()
