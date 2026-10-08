@@ -88,7 +88,10 @@ jobs:
           assert str(row.status) == "PENDING"
           assert str(row.task_id) == "44444444-4444-4444-4444-444444444444"
           PY
-      - run: pytest -q
+      - name: Run backend tests
+        env:
+          AUTOWORKER_ENV: development
+        run: pytest -q
       - run: ruff check packages apps tests
 
   frontend:
@@ -178,19 +181,20 @@ jobs:
           import time
           import urllib.request
 
-          url = "https://autoworker-api-demo.onrender.com/"
+          url = "${API_URL}/system/status"
           deadline = time.time() + 180
           while time.time() < deadline:
               try:
                   with urllib.request.urlopen(url, timeout=10) as response:
-                      if response.status == 200:
-                          print("Demo API is live.")
+                      payload = response.read().decode()
+                      if response.status == 200 and '"execution":' in payload:
+                          print(f"Demo API is live: {payload}")
                           break
               except Exception as exc:
                   print(f"Waiting for demo API: {exc}")
               time.sleep(10)
           else:
-              raise SystemExit("Demo API did not become ready within 180 seconds.")
+              raise SystemExit("Demo API did not expose runtime status within 180 seconds.")
           PY
       - name: Create and verify a real deployed task
         env:
@@ -202,31 +206,45 @@ jobs:
           import urllib.error
           import urllib.request
 
-          base = "https://autoworker-api-demo.onrender.com"
+          base = "${API_URL}"
           payload = json.dumps({
               "goal": "Process invoice INV-LIVE-SMOKE total 250 INR"
           }).encode()
 
-          request = urllib.request.Request(
-              f"{base}/tasks",
-              data=payload,
-              headers={"Content-Type": "application/json"},
-              method="POST",
-          )
-          with urllib.request.urlopen(request, timeout=20) as response:
-              assert response.status == 201, response.status
-              task = json.load(response)
+          def create_task():
+              request = urllib.request.Request(
+                  f"{base}/tasks",
+                  data=payload,
+                  headers={"Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  assert response.status == 201, response.status
+                  return json.load(response)
 
+          task = create_task()
           task_id = task["task_id"]
           print(f"Created deployed task {task_id} with status {task['status']}.")
 
           deadline = time.time() + 120
           last = None
           while time.time() < deadline:
-              with urllib.request.urlopen(
-                  f"{base}/tasks/{task_id}/detail", timeout=20
-              ) as response:
-                  detail = json.load(response)
+              try:
+                  with urllib.request.urlopen(
+                      f"{base}/tasks/{task_id}/detail", timeout=20
+                  ) as response:
+                      detail = json.load(response)
+              except urllib.error.HTTPError as exc:
+                  if exc.code == 404:
+                      # Render may still be switching instances after a deploy.
+                      # Recreate the task so the smoke test only proceeds against
+                      # an instance that serves the current task-detail route.
+                      time.sleep(5)
+                      task = create_task()
+                      task_id = task["task_id"]
+                      print(f"Retried against deployed instance with task {task_id}.")
+                      continue
+                  raise
               last = detail
               print(
                   f"status={detail['status']} "
