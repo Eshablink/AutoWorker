@@ -178,7 +178,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function getSystemStatus(): Promise<SystemStatus> {\n  return request<SystemStatus>("/system/status");\n}\n\nexport function listTasks(limit = 50): Promise<TaskSummary[]> {
+export function getSystemStatus(): Promise<SystemStatus> {
+  return request<SystemStatus>("/system/status");
+}
+
+export function listTasks(limit = 50): Promise<TaskSummary[]> {
   return request<TaskSummary[]>(`/tasks?limit=${limit}`);
 }
 
