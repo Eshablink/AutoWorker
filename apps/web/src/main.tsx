@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import {
   ActionStatus,
   createTask,
+  getSystemStatus,
   decideApproval,
   getTaskDetail,
   listPendingApprovals,
@@ -13,6 +14,7 @@ import {
   TaskEvent,
   TaskStatus,
   TaskSummary,
+  SystemStatus,
 } from "./api";
 import "./styles.css";
 
@@ -103,17 +105,19 @@ function App() {
   const [creating, setCreating] = useState(false);
   const [actingOnApproval, setActingOnApproval] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
 
   const selectedTask = detail ?? tasks.find((task) => task.task_id === selectedId) ?? tasks[0] ?? null;
 
   const load = async (preserveError = false) => {
     try {
       if (!preserveError) setError(null);
-      const [nextTasks, nextApprovals] = await Promise.all([listTasks(), listPendingApprovals()]);
+      const [nextTasks, nextApprovals, nextSystemStatus] = await Promise.all([listTasks(), listPendingApprovals(), getSystemStatus()]);
       // A successful poll clears any transient connection error from an earlier cold-start/request failure.
       setError(null);
       setTasks(nextTasks);
       setApprovals(nextApprovals);
+      setSystemStatus(nextSystemStatus);
 
       const id = selectedId ?? nextTasks[0]?.task_id;
       if (id) {
@@ -199,8 +203,8 @@ function App() {
 
         <div className="workspaceCard">
           <span>WORKSPACE</span>
-          <strong>Production Lab</strong>
-          <small>PostgreSQL · durable runtime</small>
+          <strong>Operator Lab</strong>
+          <small>{systemStatus ? `${systemStatus.database} · ${systemStatus.execution === "enabled" ? "execution enabled" : "execution disabled"}` : "Runtime status loading…"}</small>
         </div>
 
         <nav className="sideNav" aria-label="Primary navigation">
@@ -220,7 +224,7 @@ function App() {
         <div className="sidebarBottom">
           <div className="runtimeCard">
             <div className="onlineDot" />
-            <div><strong>Control plane online</strong><small>Polling every 3.5s</small></div>
+            <div><strong>API connected</strong><small>Runtime status refreshed with polling</small></div>
           </div>
           <small className="version">AUTOWORKER / OPERATOR CONSOLE</small>
         </div>
@@ -292,7 +296,7 @@ function App() {
         )}
 
         {view === "evidence" && <EvidenceView detail={detail} />}
-        {view === "workers" && <WorkersView metrics={metrics} />}
+        {view === "workers" && <WorkersView metrics={metrics} systemStatus={systemStatus} />}
       </section>
     </main>
   );
@@ -534,18 +538,18 @@ function EvidenceView({detail}: {detail: TaskDetail | null}) {
   );
 }
 
-function WorkersView({metrics}: {metrics: {total: number; running: number; completed: number; failed: number; approvals: number}}) {
+function WorkersView({metrics, systemStatus}: {metrics: {total: number; running: number; completed: number; failed: number; approvals: number}; systemStatus: SystemStatus | null}) {
   return (
     <div className="pageStack">
       <section className="metricGrid">
         <MetricCard label="Control plane" value="ONLINE" helper="FastAPI health path" icon="◉" success />
-        <MetricCard label="Worker runtime" value="READY" helper="Lease + heartbeat capable" icon="↻" accent />
+        <MetricCard label="Worker runtime" value={systemStatus?.execution === "enabled" ? "ENABLED" : "DISABLED"} helper={systemStatus?.worker_mode ?? "Status unavailable"} icon="↻" accent />
         <MetricCard label="Durable coordination" value="ON" helper="Idempotency + outbox" icon="◇" />
         <MetricCard label="Tracked outcomes" value={metrics.completed} helper={`${metrics.failed} failed tasks`} icon="✓" />
       </section>
       <section className="workerHero">
         <div className="workerGraphic"><div className="workerPulse" /><span>AW</span></div>
-        <div><span className="microLabel">REFERENCE WORKER RUNTIME</span><h2>Durable execution boundary is online.</h2><p>Tasks are guarded by persistent coordination primitives: idempotency claims, worker leases with heartbeat renewal, bounded recovery, verification, and durable operational events.</p><div className="detailChips"><span>PostgreSQL</span><span>Leases</span><span>Outbox</span><span>Verification</span></div></div>
+        <div><span className="microLabel">WORKER RUNTIME</span><h2>{systemStatus?.execution === "enabled" ? "Execution is enabled." : "No worker execution is attached."}</h2><p>Runtime state is reported by the API instead of being hard-coded in the console.</p><div className="detailChips"><span>{systemStatus?.database ?? "Database unknown"}</span><span>Leases</span><span>Queue</span><span>Verification</span></div></div>
       </section>
       <section className="contentGrid"><section className="panel"><PanelHeader title="Runtime guardrails" meta="ENFORCED" /><div className="guardrailList">{["Atomic side-effect idempotency","Database-backed worker leases","Heartbeat renewal","Approval expiry","Optimistic task concurrency","Independent verification"].map(item => <div key={item}><span>✓</span><strong>{item}</strong></div>)}</div></section><section className="panel"><PanelHeader title="Operational posture" meta="LIVE DATA" /><div className="postureStats"><div><strong>{metrics.total}</strong><span>tasks</span></div><div><strong>{metrics.running}</strong><span>in flight</span></div><div><strong>{metrics.approvals}</strong><span>approvals</span></div><div><strong>{metrics.failed}</strong><span>failed</span></div></div></section></section>
     </div>
