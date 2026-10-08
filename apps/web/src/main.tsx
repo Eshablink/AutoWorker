@@ -283,7 +283,7 @@ function App() {
             <div className="onlineDot" />
             <div><strong>API connected</strong><small>Runtime status refreshed with polling</small></div>
           </div>
-          <small className="version">AUTOWORKER / OPERATOR CONSOLE</small>
+          <button className="ghostButton" onClick={() => { localStorage.removeItem("autoworker_token"); setToken(null); }}>Sign out</button><small className="version">AUTOWORKER / PERSONAL WORKSPACE</small>
         </div>
       </aside>
 
