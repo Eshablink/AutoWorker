@@ -13,7 +13,7 @@ from typing import Callable, Protocol
 from uuid import UUID
 
 from packages.audit.events import EventType
-from packages.domain.models import AuditEvent, Task, TaskStatus
+from packages.domain.models import ActionStatus, AuditEvent, Task, TaskStatus
 from packages.domain.repository import TaskRepository
 from packages.domain.state import TaskStateMachine
 from packages.verification.engine import VerificationCheck
@@ -320,7 +320,7 @@ class WorkerRuntime:
         # If the process died after persisting ACTION_COMPLETED but before
         # persisting verification, resume from verification instead of trying
         # to execute the side effect a second time.
-        if action.status != __import__("packages.domain.models", fromlist=["ActionStatus"]).ActionStatus.COMPLETED:
+        if action.status != ActionStatus.COMPLETED:
             before_execution = task.version
             try:
                 self.orchestrator.execute_current(task)
