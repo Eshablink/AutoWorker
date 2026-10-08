@@ -294,13 +294,14 @@ class SqlAlchemyTaskRepository:
             row.created_at = approval.created_at
             row.decided_at = approval.decided_at
 
-    def find_by_approval_id(self, approval_id: UUID) -> Task:
+    def find_by_approval_id(self, approval_id: UUID, *, owner_id: UUID | None = None) -> Task:
         row = self.session.get(ApprovalRecord, str(approval_id))
         if row is None:
             raise TaskNotFoundError(str(approval_id))
-        return self.get(UUID(row.task_id))
+        task_id = UUID(row.task_id)
+        return self.get_owned(task_id, owner_id) if owner_id is not None else self.get(task_id)
 
-    def list_pending_approvals(self, *, limit: int = 50) -> list[Task]:
+    def list_pending_approvals(self, *, limit: int = 50, owner_id: UUID | None = None) -> list[Task]:
         if limit < 1:
             raise ValueError("limit must be at least 1.")
         approval_rows = self.session.execute(
@@ -310,10 +311,10 @@ class SqlAlchemyTaskRepository:
             .limit(limit)
         ).scalars().all()
         task_ids = list(dict.fromkeys(row.task_id for row in approval_rows))
-        return [
-            self.get(UUID(task_id))
-            for task_id in task_ids
-        ]
+        if owner_id is not None:
+            owned = self.session.execute(select(TaskRecord.task_id).where(TaskRecord.task_id.in_(task_ids), TaskRecord.owner_id == str(owner_id))).scalars().all()
+            task_ids = owned
+        return [self.get(UUID(task_id)) for task_id in task_ids]
 
     def list_audit(self, task_id: UUID) -> list[AuditEvent]:
         rows = self.session.execute(
