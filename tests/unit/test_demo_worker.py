@@ -1,12 +1,10 @@
-from uuid import uuid4
-
 from packages.domain.models import Task, TaskStatus
 from packages.persistence.memory import InMemoryTaskRepository
 from packages.policy.engine import PolicyEngine
+from packages.worker.demo import build_demo_components
 from packages.worker.execution import ExecutionWorker
 from packages.worker.orchestrator import TaskOrchestrator
 from packages.worker.runtime import WorkerRuntime
-from packages.worker.demo import build_demo_components
 
 
 def build_runtime():
