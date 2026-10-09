@@ -180,6 +180,7 @@ jobs:
           API_URL: https://autoworker-api-demo.onrender.com
         run: |
           python - <<'PY'
+          import os
           import time
           import urllib.request
 
@@ -204,6 +205,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          import os
           import time
           import urllib.error
           import urllib.request
