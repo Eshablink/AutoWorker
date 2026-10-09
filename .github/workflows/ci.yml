@@ -168,7 +168,7 @@ jobs:
       - name: Run Redis Streams integration
         env:
           REDIS_URL: redis://127.0.0.1:6379/0
-        run: pytest -q tests/integration/test_redis_broker.py
+        run: REDIS_URL=redis://127.0.0.1:6379/0 pytest -q tests/integration/test_redis_broker.py
 
   live-demo-smoke:
     runs-on: ubuntu-latest
@@ -183,7 +183,7 @@ jobs:
           import time
           import urllib.request
 
-          url = "${API_URL}/system/status"
+          url = os.environ["API_URL"] + "/system/status"
           deadline = time.time() + 180
           while time.time() < deadline:
               try:
@@ -208,7 +208,7 @@ jobs:
           import urllib.error
           import urllib.request
 
-          base = "${API_URL}"
+          base = os.environ["API_URL"]
           email = f"live-smoke-{int(time.time())}@example.test"
           register_payload = json.dumps({
               "email": email,
