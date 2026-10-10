@@ -22,7 +22,6 @@ logger = logging.getLogger("autoworker.worker.main")
 
 
 def build_runtime() -> WorkerRuntime:
-    settings = get_settings()
     session_factory = get_session_factory()
     repository = SqlAlchemyTaskRepository(session_factory())
 
