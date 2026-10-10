@@ -249,9 +249,11 @@ jobs:
           last = None
           while time.time() < deadline:
               try:
-                  with urllib.request.urlopen(
-                      f"{base}/tasks/{task_id}/detail", headers=headers, timeout=20
-                  ) as response:
+                  detail_request = urllib.request.Request(
+                      f"{base}/tasks/{task_id}/detail",
+                      headers=headers,
+                  )
+                  with urllib.request.urlopen(detail_request, timeout=20) as response:
                       detail = json.load(response)
               except urllib.error.HTTPError as exc:
                   if exc.code == 404:
