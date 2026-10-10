@@ -73,22 +73,33 @@ class SqlAlchemyTaskQueue:
         now = datetime.now(timezone.utc)
         stale_before = now - timedelta(seconds=120)
         with self.session_factory() as session:
-            session.execute(
-                update(DispatchQueueRecord)
+            stale_ids = session.scalars(
+                select(DispatchQueueRecord.task_id)
                 .where(
                     DispatchQueueRecord.state == self.CLAIMED,
                     DispatchQueueRecord.claimed_at.is_not(None),
                     DispatchQueueRecord.claimed_at < stale_before,
                 )
-                .values(
-                    state=self.READY,
-                    claimed_by=None,
-                    claimed_at=None,
-                    available_at=now,
-                    last_error="Recovered stale dispatch claim.",
+                .limit(100)
+            ).all()
+            # Avoid a write transaction on every empty poll. This matters for
+            # the SQLite-backed public demo, where a worker and API share one DB.
+            if stale_ids:
+                session.execute(
+                    update(DispatchQueueRecord)
+                    .where(
+                        DispatchQueueRecord.task_id.in_(stale_ids),
+                        DispatchQueueRecord.state == self.CLAIMED,
+                    )
+                    .values(
+                        state=self.READY,
+                        claimed_by=None,
+                        claimed_at=None,
+                        available_at=now,
+                        last_error="Recovered stale dispatch claim.",
+                    )
                 )
-            )
-            session.commit()
+                session.commit()
             stmt = (
                 select(DispatchQueueRecord)
                 .where(
