@@ -20,7 +20,8 @@ def get_settings() -> Settings:
 @lru_cache
 def get_session_factory() -> sessionmaker[Session]:
     settings = get_settings()
-    engine = create_engine(settings.database_url, pool_pre_ping=True)
+    connect_args = {"timeout": 30, "check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+    engine = create_engine(settings.database_url, pool_pre_ping=True, connect_args=connect_args)
     if settings.environment == "development":
         with _schema_init_lock:
             Base.metadata.create_all(engine)
