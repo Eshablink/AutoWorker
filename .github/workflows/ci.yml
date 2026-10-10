@@ -266,6 +266,12 @@ jobs:
                       print(f"Retried against deployed instance with task {task_id}.")
                       continue
                   raise
+              except (TimeoutError, urllib.error.URLError) as exc:
+                  # A cold/free demo instance or SQLite lock can delay one poll.
+                  # Retry within the overall task deadline instead of failing early.
+                  print(f"Task detail poll temporarily unavailable: {exc}")
+                  time.sleep(3)
+                  continue
               last = detail
               print(
                   f"status={detail['status']} "
