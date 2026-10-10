@@ -1,8 +1,8 @@
 import os
 
 
-# Unit tests exercise the local SQLite demo configuration explicitly. This must
-# run before application modules are imported during test collection.
-os.environ["AUTOWORKER_ENV"] = "development"
-os.environ["DATABASE_URL"] = "sqlite:///./autoworker-test.db"
-os.environ.pop("REDIS_URL", None)
+# Local tests default to SQLite, but CI-provided PostgreSQL/Redis URLs must win.
+os.environ.setdefault("AUTOWORKER_ENV", "development")
+os.environ.setdefault("DATABASE_URL", "sqlite:///./autoworker-test.db")
+os.environ.setdefault("AUTOWORKER_AUTH_SECRET", "test-only-autoworker-auth-secret-not-for-production")
+os.environ.setdefault("REDIS_URL", "")
