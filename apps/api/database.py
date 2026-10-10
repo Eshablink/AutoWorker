@@ -22,6 +22,12 @@ def get_session_factory() -> sessionmaker[Session]:
     settings = get_settings()
     connect_args = {"timeout": 30, "check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
     engine = create_engine(settings.database_url, pool_pre_ping=True, connect_args=connect_args)
+    if settings.database_url.startswith("sqlite"):
+        # WAL lets API reads proceed while the embedded demo worker writes task state.
+        # It is especially important for the single-process SQLite demo deployment.
+        with engine.connect() as connection:
+            connection.exec_driver_sql("PRAGMA journal_mode=WAL")
+            connection.exec_driver_sql("PRAGMA synchronous=NORMAL")
     if settings.environment == "development":
         with _schema_init_lock:
             Base.metadata.create_all(engine)
