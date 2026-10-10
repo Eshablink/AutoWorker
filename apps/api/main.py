@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 from threading import Event, Thread
 from uuid import uuid4
 
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -25,6 +27,10 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    if os.getenv("AUTOWORKER_AUTO_MIGRATE", "").lower() in {"1", "true", "yes"}:
+        command.upgrade(Config("alembic.ini"), "head")
+        logging.getLogger("autoworker").info("database_migrations_applied")
+
     worker_thread = None
     stop_event = Event()
     if os.getenv("AUTOWORKER_WORKER_ENABLED", "").lower() in {"1", "true", "yes"}:
