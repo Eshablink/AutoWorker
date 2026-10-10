@@ -12,6 +12,8 @@ from threading import Event, Thread
 from typing import Callable, Protocol
 from uuid import UUID
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from packages.audit.events import EventType
 from packages.domain.models import ActionStatus, AuditEvent, Task, TaskStatus
 from packages.domain.repository import TaskRepository
@@ -158,6 +160,15 @@ class WorkerRuntime:
                 except LeaseError:
                     heartbeat_stop.set()
                     return
+                except SQLAlchemyError:
+                    # SQLite can briefly reject a heartbeat while another task-state
+                    # write is committing. Keep the worker alive and retry next interval;
+                    # WAL mode reduces this contention for the hosted demo.
+                    logger.warning(
+                        "worker_heartbeat_transient_database_error",
+                        extra={"worker_id": self.worker_id, "task_id": str(lease.task_id)},
+                        exc_info=True,
+                    )
 
         heartbeat_thread = Thread(
             target=heartbeat,
