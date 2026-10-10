@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
-from uuid import uuid4
+from uuid import UUID, uuid4
+
+from apps.api.auth import Principal
 
 from apps.api.routes.approvals import ApprovalDecision, decide_approval
 from packages.domain.models import (
@@ -61,6 +63,7 @@ def test_approved_request_resumes_task():
         approval.approval_id,
         ApprovalDecision(status=ApprovalStatus.APPROVED, approver_id="manager"),
         repo,
+        Principal(user_id=UUID(int=0), email="test@example.com"),
     )
 
     updated = repo.get(task.task_id)
