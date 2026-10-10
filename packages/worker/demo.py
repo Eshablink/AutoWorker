@@ -8,7 +8,6 @@ pipeline can be exercised end-to-end without unsafe side effects.
 from __future__ import annotations
 
 import re
-from uuid import UUID
 
 from packages.domain.models import Task, TaskAction, ToolDefinition, ToolRisk
 from packages.integrations.simulated_erp import SimulatedERP
