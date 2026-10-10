@@ -85,6 +85,7 @@ def test_rejected_request_cancels_task():
             comment="Reject for review",
         ),
         repo,
+        Principal(user_id=UUID(int=0), email="test@example.com"),
     )
 
     updated = repo.get(task.task_id)
@@ -103,6 +104,7 @@ def test_expired_approval_is_failed_and_not_accepted():
         approval.approval_id,
         ApprovalDecision(status=ApprovalStatus.APPROVED, approver_id="manager"),
         repo,
+        Principal(user_id=UUID(int=0), email="test@example.com"),
     )
 
     assert result.status_code == 409
