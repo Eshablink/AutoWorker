@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 import os
 from threading import Event
+from uuid import UUID
 
 from apps.api.database import get_session_factory, get_settings
+from packages.domain.models import AuditEvent, Task
 from packages.persistence.coordination import SqlAlchemyIdempotencyStore, SqlAlchemyLeaseManager
 from packages.persistence.sqlalchemy import SqlAlchemyTaskRepository
 from packages.persistence.queue import SqlAlchemyTaskQueue
@@ -21,10 +23,29 @@ from packages.worker.runtime import WorkerRuntime
 logger = logging.getLogger("autoworker.worker.main")
 
 
+class WorkerTaskRepository(SqlAlchemyTaskRepository):
+    """Commit worker state transitions instead of relying on API dependency teardown."""
+
+    def save(
+        self,
+        task: Task,
+        audit_event: AuditEvent,
+        *,
+        expected_version: int,
+    ) -> Task:
+        try:
+            saved = super().save(task, audit_event, expected_version=expected_version)
+            self.session.commit()
+            return saved
+        except Exception:
+            self.session.rollback()
+            raise
+
+
 def build_runtime() -> WorkerRuntime:
     settings = get_settings()
     session_factory = get_session_factory()
-    repository = SqlAlchemyTaskRepository(session_factory())
+    repository = WorkerTaskRepository(session_factory())
 
     registry, planner, executor, checks = build_demo_components()
     idempotency = SqlAlchemyIdempotencyStore(session_factory)
