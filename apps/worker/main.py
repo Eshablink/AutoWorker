@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import os
 from threading import Event
-from uuid import UUID
 
 from apps.api.database import get_session_factory, get_settings
 from packages.domain.models import AuditEvent, Task
