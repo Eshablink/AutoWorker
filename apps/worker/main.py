@@ -22,6 +22,7 @@ logger = logging.getLogger("autoworker.worker.main")
 
 
 def build_runtime() -> WorkerRuntime:
+    settings = get_settings()
     session_factory = get_session_factory()
     repository = SqlAlchemyTaskRepository(session_factory())
 
@@ -41,7 +42,10 @@ def build_runtime() -> WorkerRuntime:
         verification_checks=lambda _task: checks,
         worker_id=os.getenv("AUTOWORKER_WORKER_ID", "autoworker-worker"),
         task_queue=SqlAlchemyTaskQueue(session_factory),
-        lease_seconds=30,
+        # SQLite serializes writers. A longer demo lease avoids a heartbeat write
+        # racing with task-state/idempotency commits in the single-process free demo.
+        # PostgreSQL-backed deployments keep the shorter production heartbeat.
+        lease_seconds=300 if settings.database_url.lower().startswith("sqlite") else 30,
     )
 
 
