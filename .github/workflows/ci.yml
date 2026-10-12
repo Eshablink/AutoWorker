@@ -288,4 +288,67 @@ jobs:
               time.sleep(5)
           else:
               raise SystemExit(f"Live task did not complete: {last}")
+
+          # Exercise the public document flow and prove cross-account isolation.
+          second_email = f"live-isolation-{int(time.time())}@example.test"
+          second_register = urllib.request.Request(
+              f"{base}/auth/register",
+              data=json.dumps({"email": second_email, "password": "LiveSmoke-2026!"}).encode(),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(second_register, timeout=20) as response:
+              second_auth = json.load(response)
+          second_headers = {
+              "Content-Type": "application/json",
+              "Authorization": f"Bearer {second_auth['access_token']}",
+          }
+
+          boundary = f"----AutoWorker{int(time.time() * 1000)}"
+          document_bytes = b"AutoWorker private document isolation smoke test."
+          multipart_body = (
+              f"--{boundary}\r\n"
+              'Content-Disposition: form-data; name="file"; filename="private-smoke.txt"\r\n'
+              "Content-Type: text/plain\r\n\r\n"
+          ).encode() + document_bytes + f"\r\n--{boundary}--\r\n".encode()
+          upload_request = urllib.request.Request(
+              f"{base}/documents",
+              data=multipart_body,
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Content-Type": f"multipart/form-data; boundary={boundary}",
+              },
+              method="POST",
+          )
+          with urllib.request.urlopen(upload_request, timeout=20) as response:
+              assert response.status == 201, response.status
+              document = json.load(response)
+          document_id = document["document_id"]
+
+          own_document_request = urllib.request.Request(
+              f"{base}/documents/{document_id}/content",
+              headers={"Authorization": f"Bearer {token}"},
+          )
+          with urllib.request.urlopen(own_document_request, timeout=20) as response:
+              assert response.read() == document_bytes
+
+          other_list_request = urllib.request.Request(
+              f"{base}/documents",
+              headers=second_headers,
+          )
+          with urllib.request.urlopen(other_list_request, timeout=20) as response:
+              assert json.load(response) == [], "A second user can see another user's documents."
+
+          other_download_request = urllib.request.Request(
+              f"{base}/documents/{document_id}/content",
+              headers=second_headers,
+          )
+          try:
+              urllib.request.urlopen(other_download_request, timeout=20)
+          except urllib.error.HTTPError as exc:
+              assert exc.code == 404, f"Expected private document to return 404, got {exc.code}."
+          else:
+              raise SystemExit("A second user could download another user's private document.")
+
+          print("Live document upload, owner download, and cross-user isolation verified.")
           PY
